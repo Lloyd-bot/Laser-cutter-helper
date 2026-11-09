@@ -1,0 +1,1869 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Laser Prep — picture or SVG → Universal laser</title>
+<style>
+:root{
+  --bg:#0b0d13; --canvas:#0d1017; --panel:#13161e; --panel2:#181c25; --sunk:#0a0c11;
+  --line:#232833; --line2:#2d3341;
+  --ink:#e9ecf3; --dim:#78819a; --dim2:#525b70;
+  --acc:#f8485e; --accd:#2a1620; --accb:#5e2230;
+  --cut:#ff4d5e; --score:#4b8cff; --engrave:#c9cfdd;
+  --ok:#36c98a; --warn:#f0a93b; --bad:#ff5d6e;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:13px/1.5 ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+
+/* The browser's own [hidden] rule is display:none, but any class here that sets
+   display (.setall is flex) outranks it and the element stays on screen. This
+   makes the hidden attribute mean what it says, everywhere. */
+[hidden]{display:none !important}
+
+/* ---- top bar ---- */
+.top{height:46px;display:flex;align-items:center;gap:14px;padding:0 14px;
+  background:var(--panel);border-bottom:1px solid var(--line);position:relative;z-index:5}
+.brand{font-weight:800;letter-spacing:.02em;font-size:15px}
+.brand i{color:var(--acc);font-style:normal;font-size:11px;font-weight:700;letter-spacing:.06em;margin-left:5px}
+.seg{display:flex;background:var(--sunk);border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg button{border:none;background:none;color:var(--dim);padding:6px 9px;cursor:pointer;
+  display:flex;align-items:center;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:none}
+.seg button:hover{color:var(--ink);background:#141821}
+.seg button[aria-pressed=true]{background:var(--accd);color:var(--acc)}
+.seg button svg{width:14px;height:14px;display:block}
+.chip{font-size:11px;color:var(--dim);border:1px solid var(--line);border-radius:6px;padding:4px 8px}
+.spacer{flex:1}
+
+/* ---- layout ---- */
+.app{display:flex;height:calc(100% - 46px)}
+.side{width:330px;flex:none;background:var(--panel);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;overflow:hidden}
+.scroll{flex:1;overflow-y:auto;overflow-x:hidden}
+.scroll::-webkit-scrollbar{width:9px}
+.scroll::-webkit-scrollbar-thumb{background:#262c38;border-radius:5px}
+.intro{padding:14px 14px 12px}
+.intro h1{font-size:15px;margin:0 0 5px;font-weight:700}
+.intro p{margin:0;color:var(--dim);font-size:12px;line-height:1.5}
+
+.sec{border-top:1px solid var(--line);padding:13px 14px}
+.sec>h2{font:700 10px/1 ui-sans-serif,sans-serif;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--dim2);margin:0 0 11px;display:flex;align-items:center;gap:7px}
+.sec>h2 b{color:var(--acc);font-weight:700}
+.lbl{font-size:12px;color:var(--ink);margin:0 0 6px;display:block;font-weight:500}
+.sub{font-size:11px;color:var(--dim);margin:6px 0 0;line-height:1.45}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.fieldwrap{position:relative}
+.fieldwrap u{position:absolute;right:9px;top:50%;transform:translateY(-50%);
+  font-style:normal;text-decoration:none;font-size:10px;color:var(--dim2);pointer-events:none}
+input[type=text],input[type=number],select{width:100%;background:var(--sunk);border:1px solid var(--line);
+  color:var(--ink);padding:7px 26px 7px 9px;border-radius:6px;font:500 12px ui-sans-serif,sans-serif}
+select{padding-right:9px;cursor:pointer}
+input:focus,select:focus{outline:none;border-color:var(--accb)}
+input[type=number]{-moz-appearance:textfield}
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+
+.btn{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+  padding:8px 10px;border-radius:6px;cursor:pointer;font:500 12px ui-sans-serif,sans-serif;
+  display:flex;align-items:center;justify-content:center;gap:6px}
+.btn:hover{border-color:var(--line2);background:#1d222c}
+.btn svg{width:13px;height:13px;opacity:.75}
+.btn.acc{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+.btn.acc:hover{filter:brightness(1.08);background:var(--acc)}
+.btn.ghost{background:none}
+
+/* card-style segmented (Baseplate-Type look) */
+.cards{display:grid;gap:5px}
+.cards.c4{grid-template-columns:repeat(4,1fr)}
+.card{background:var(--sunk);border:1px solid var(--line);border-radius:7px;cursor:pointer;
+  padding:8px 2px 6px;display:flex;flex-direction:column;align-items:center;gap:5px;color:var(--dim)}
+.card:hover{border-color:var(--line2);color:var(--ink)}
+.card svg{width:17px;height:17px}
+.card span{font-size:9.5px;letter-spacing:.02em;font-weight:600}
+.card[aria-pressed=true]{background:var(--accd);border-color:var(--accb);color:var(--acc)}
+
+/* alignment pad */
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;width:78px}
+.pad button{aspect-ratio:1;background:var(--sunk);border:1px solid var(--line);border-radius:4px;
+  cursor:pointer;display:grid;place-items:center;padding:0}
+.pad button::after{content:'';width:4px;height:4px;border-radius:50%;background:#39404f}
+.pad button:hover{border-color:var(--line2)}
+.pad button[aria-pressed=true]{background:var(--accd);border-color:var(--accb)}
+.pad button[aria-pressed=true]::after{background:var(--acc)}
+
+/* colours */
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:3px;
+  background:var(--line2);outline:none;padding:0;margin:2px 0 0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+  background:var(--acc);cursor:pointer;border:2px solid var(--panel)}
+input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--acc);
+  cursor:pointer;border:2px solid var(--panel)}
+/* trace panel */
+.trwrap{background:#15181f;border:1px solid var(--line);border-radius:7px;padding:6px;
+  margin-bottom:12px;display:grid;place-items:center;min-height:56px}
+.trwrap canvas{max-width:100%;max-height:132px;border-radius:3px;display:block}
+.trrow{display:flex;justify-content:space-between;align-items:baseline}
+.trrow em{font-style:normal;color:var(--dim2);font-size:10px;letter-spacing:0;text-transform:none}
+.trmsg{font-size:11px;line-height:1.45;color:#f5c268;background:#2e2410;border:1px solid #5c4a1d;
+  border-radius:6px;padding:8px 10px;margin-top:10px}
+
+.setall{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px;
+  font-size:11px;color:var(--dim)}
+.setall div{display:flex;gap:3px}
+.setall button{background:var(--sunk);border:1px solid var(--line);color:var(--dim);border-radius:5px;
+  padding:4px 6px;font:600 10px ui-sans-serif,sans-serif;cursor:pointer}
+.setall button:hover{border-color:var(--accb);color:var(--acc)}
+.more{font-size:11px;color:var(--dim);text-align:center;padding:7px;border:1px dashed var(--line2);
+  border-radius:7px;margin-bottom:7px}
+.crow{border:1px solid var(--line);border-radius:8px;padding:9px;margin-bottom:7px;background:var(--sunk)}
+.chead{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.sw{width:20px;height:20px;border-radius:5px;border:1px solid #434a5d;flex:none}
+.chead code{font-size:11.5px;letter-spacing:.02em}
+.chead em{font-style:normal;margin-left:auto;font-size:10.5px;color:var(--dim)}
+
+/* messages */
+.msg{border:1px solid var(--line);border-left:2px solid var(--dim2);border-radius:6px;
+  padding:8px 10px;margin-bottom:6px;background:var(--sunk)}
+.msg.warn{border-left-color:var(--warn)}
+.msg.bad{border-left-color:var(--bad)}
+.msg.ok{border-left-color:var(--ok)}
+.msg .t{font-size:12px;font-weight:600;margin-bottom:2px}
+.msg .d{font-size:11px;color:var(--dim);line-height:1.45}
+.verdict{display:block;text-align:center;font-weight:700;font-size:11.5px;padding:8px;
+  border-radius:6px;margin-bottom:9px;letter-spacing:.02em}
+.verdict.ok{background:#0f2e20;color:#5fe0a6;border:1px solid #1d5c3f}
+.verdict.warn{background:#2e2410;color:#f5c268;border:1px solid #5c4a1d}
+.verdict.bad{background:#2e1216;color:#ff8e9b;border:1px solid #5c2630}
+
+.foot{border-top:1px solid var(--line);padding:11px 14px;display:grid;gap:7px;background:var(--panel)}
+
+/* ---- canvas ---- */
+.main{flex:1;position:relative;background:var(--canvas);overflow:hidden}
+.gridbg{position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(248,72,94,.055) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(248,72,94,.055) 1px,transparent 1px),
+    linear-gradient(rgba(248,72,94,.10) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(248,72,94,.10) 1px,transparent 1px);
+  background-size:22px 22px,22px 22px,110px 110px,110px 110px}
+.stagewrap{position:absolute;inset:0;display:grid;place-items:center;padding:52px 34px 46px}
+#view{max-width:100%;max-height:100%;touch-action:none;user-select:none}
+#view.dragging{cursor:grabbing}
+.hud{position:absolute;top:13px;left:16px;font-size:11px;color:var(--dim);
+  display:flex;gap:16px;pointer-events:none}
+.hud b{color:var(--ink);font-weight:600}
+.key{position:absolute;bottom:13px;left:16px;display:flex;gap:14px;font-size:11px;color:var(--dim)}
+.key em{font-style:normal;color:var(--dim2);margin-left:4px}
+.key i{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:5px;vertical-align:-1px}
+.empty{text-align:center;color:var(--dim2);max-width:300px}
+.empty svg{width:40px;height:40px;opacity:.3;margin-bottom:12px}
+
+.drop{border:1.5px dashed #313847;border-radius:8px;padding:16px 12px;text-align:center;
+  cursor:pointer;transition:.12s;background:var(--sunk)}
+.drop:hover,.drop.over{border-color:var(--acc);background:var(--accd)}
+.drop b{display:block;font-size:12px;margin-bottom:3px}
+.drop span{color:var(--dim);font-size:11px}
+.filechip{display:flex;align-items:center;gap:8px;background:var(--sunk);border:1px solid var(--line);
+  border-radius:7px;padding:8px 10px;font-size:12px}
+.filechip svg{width:14px;height:14px;color:var(--acc);flex:none}
+.filechip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.sheet{display:none}
+@media print{
+  body{overflow:visible;background:#fff;color:#000;height:auto}
+  .top,.app{display:none !important}
+  .sheet{display:block !important;font:11pt/1.45 Georgia,serif;padding:0}
+  .sheet h1{font-size:19pt;margin:0 0 2pt}
+  .sheet .meta{color:#444;margin-bottom:12pt;font-size:10pt}
+  .sheet table{width:100%;border-collapse:collapse;margin-bottom:12pt}
+  .sheet th,.sheet td{border:1px solid #999;padding:5pt 7pt;text-align:left;font-size:10pt}
+  .sheet th{background:#eee}
+  .sheet .box{border:1px solid #999;padding:8pt;margin-bottom:11pt}
+  .sheet .code{font:bold 20pt monospace;letter-spacing:.1em}
+  .sheet li{margin-bottom:3pt}
+}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="brand">LASER PREP<i>[SCHOOL]</i></div>
+  <div class="seg" id="layerToggles">
+    <button data-layer="cut"     aria-pressed="true" title="Show cut lines"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2.5" y="2.5" width="11" height="11" rx="2"/></svg></button>
+    <button data-layer="score"   aria-pressed="true" title="Show score lines"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 2"><path d="M2.5 8h11"/></svg></button>
+    <button data-layer="engrave" aria-pressed="true" title="Show engraving"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="3" width="10" height="10" rx="1.5"/></svg></button>
+  </div>
+  <div class="seg">
+    <button id="tGrid" aria-pressed="true" title="Grid"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2 6h12M2 10h12M6 2v12M10 2v12"/></svg></button>
+    <button id="tRule" aria-pressed="true" title="Bed outline"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-dasharray="2.5 2"><rect x="2.5" y="3.5" width="11" height="9"/></svg></button>
+  </div>
+  <div class="seg" id="zoomSeg">
+    <button id="zOut" title="Zoom out (−)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3.5 8h9"/></svg></button>
+    <button id="zFit" title="Fit the whole bed in view (0)"><b style="font:700 10px ui-sans-serif,sans-serif;min-width:34px;text-align:center">100%</b></button>
+    <button id="zIn" title="Zoom in (+)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3.5 8h9M8 3.5v9"/></svg></button>
+  </div>
+  <div class="spacer"></div>
+  <div class="chip" id="machChip">Universal · 600 × 400</div>
+  <div class="chip">MM</div>
+</div>
+
+<div class="app">
+  <aside class="side">
+    <div class="scroll">
+      <div class="intro">
+        <h1>Artwork → Universal laser</h1>
+        <p>Drop in <b>any picture</b> &mdash; PNG, JPG, a screenshot, a photo of a drawing &mdash; and it gets traced into cut lines. Already have a vector file? Drop the <b>SVG</b> instead and it skips tracing. Either way: set the real size, say what each colour should do, download a file the laser will accept. Runs entirely in your browser.</p>
+      </div>
+
+      <div class="sec">
+        <h2>Design</h2>
+        <div id="dropHost">
+          <div class="drop" id="drop">
+            <b>Drop a picture or an SVG</b>
+            <span>PNG &middot; JPG &middot; SVG — click to browse, or paste with Ctrl&#8209;V</span>
+          </div>
+        </div>
+        <input type="file" id="file" accept=".svg,image/svg+xml,image/png,image/jpeg,image/gif,image/webp,image/bmp" hidden>
+        <button class="btn ghost" id="reset" style="margin-top:8px">Start again</button>
+      </div>
+
+      <div class="sec" id="secTrace" hidden>
+        <h2>Trace <b id="trCount"></b></h2>
+        <div class="trwrap"><canvas id="trCv"></canvas></div>
+        <label class="lbl trrow"><span>Black / white cut-off</span><em id="thrVal">50</em></label>
+        <input type="range" id="thr" min="2" max="98" step="1" value="50">
+        <label class="lbl trrow" style="margin-top:10px"><span>Smoothing</span><em id="smVal">medium</em></label>
+        <input type="range" id="sm" min="0" max="10" step="1" value="6">
+        <label class="lbl trrow" style="margin-top:10px"><span>Remove specks</span><em id="spVal">small</em></label>
+        <input type="range" id="sp" min="0" max="10" step="1" value="3">
+        <label style="display:flex;gap:7px;align-items:center;margin-top:11px;font-size:12px;cursor:pointer">
+          <input type="checkbox" id="trInv" style="width:auto;padding:0"> Trace the light parts instead
+        </label>
+        <p class="trmsg" id="trMsg" hidden></p>
+        <p class="sub">Whatever shows black above becomes the shape. Every outline closes by
+          construction, so a traced cut line can never come out open. Works best on logos,
+          silhouettes and bold lettering — not on photographs.<br><br>
+          Traced shapes start as <b style="color:var(--ink)">Cut</b>. To mark the surface
+          without going through, change it to Score or Engrave under
+          <b style="color:var(--ink)">Colours</b> below.</p>
+      </div>
+
+      <div class="sec" id="secMachine">
+        <h2>Machine</h2>
+        <label class="lbl">Model</label>
+        <select id="machine"></select>
+        <label class="lbl" style="margin-top:10px">Bed size</label>
+        <div class="grid2">
+          <div class="fieldwrap"><input type="number" id="bw" min="10" step="1" value="600"><u>W mm</u></div>
+          <div class="fieldwrap"><input type="number" id="bh" min="10" step="1" value="400"><u>H mm</u></div>
+        </div>
+        <label class="lbl" style="margin-top:10px">Material</label>
+        <input type="text" id="mat" value="3mm plywood" placeholder="e.g. 3mm plywood">
+        <p class="sub">Universal's origin is the <b style="color:var(--ink)">top-left</b> corner, so that's where the preview puts 0,0. Measure your own bed if the preset looks off.</p>
+      </div>
+
+      <div class="sec" id="secSize" hidden>
+        <h2>Finished size</h2>
+        <div class="grid2">
+          <div class="fieldwrap"><input type="number" id="w" min="1" step="0.1"><u>W mm</u></div>
+          <div class="fieldwrap"><input type="number" id="h" min="1" step="0.1"><u>H mm</u></div>
+        </div>
+        <label style="display:flex;gap:7px;align-items:center;margin-top:9px;font-size:12px;cursor:pointer">
+          <input type="checkbox" id="lock" checked style="width:auto;padding:0"> Keep proportions
+        </label>
+        <div class="grid2" style="margin-top:9px">
+          <button class="btn" id="fit">Fit to bed</button>
+          <button class="btn" id="rot">Rotate 90°</button>
+        </div>
+        <p class="sub" id="sizeNote"></p>
+      </div>
+
+      <div class="sec" id="secPlace" hidden>
+        <h2>Placement</h2>
+        <div style="display:flex;gap:14px;align-items:flex-start">
+          <div>
+            <label class="lbl">Corner</label>
+            <div class="pad" id="pad"></div>
+          </div>
+          <div style="flex:1">
+            <label class="lbl">From top-left</label>
+            <div class="fieldwrap" style="margin-bottom:6px"><input type="number" id="px" step="1" value="0"><u>X mm</u></div>
+            <div class="fieldwrap"><input type="number" id="py" step="1" value="0"><u>Y mm</u></div>
+          </div>
+        </div>
+        <p class="sub">Or just <b style="color:var(--ink)">drag the design</b> in the preview to move it, and
+          <b style="color:var(--ink)">pull a corner</b> to resize. Hold Shift to snap to 5 mm.</p>
+        <label class="lbl" style="margin-top:11px">Page size of exported file</label>
+        <div class="cards c4" id="pageMode" style="grid-template-columns:1fr 1fr">
+          <button class="card" data-mode="bed" aria-pressed="true">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="3.5" width="16" height="13" rx="1.5"/><rect x="5" y="6.5" width="6" height="5" fill="currentColor" stroke="none" opacity=".55"/></svg>
+            <span>FULL BED</span></button>
+          <button class="card" data-mode="art">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="6" width="10" height="8" rx="1.5"/></svg>
+            <span>JUST ART</span></button>
+        </div>
+        <p class="sub" id="pageNote"></p>
+      </div>
+
+      <div class="sec" id="secOutline" hidden>
+        <h2>Cut outline</h2>
+        <label style="display:flex;gap:7px;align-items:center;font-size:12px;cursor:pointer">
+          <input type="checkbox" id="olOn" style="width:auto;padding:0"> Add a cut line around the design
+        </label>
+        <div class="grid2" style="margin-top:9px">
+          <div class="fieldwrap"><input type="number" id="olPad" min="0" step="0.5" value="4"><u>gap mm</u></div>
+          <div class="fieldwrap"><input type="number" id="olR" min="0" step="0.5" value="3"><u>corner mm</u></div>
+        </div>
+        <p class="sub">Draws one closed rectangle in cut red around everything. Use this when the design is
+          traced artwork with no clean outline of its own — it is guaranteed to close, so the piece drops out.</p>
+      </div>
+
+      <div class="sec" id="secColours" hidden>
+        <h2>Colours <b id="cCount"></b></h2>
+        <div id="mergeRow">
+          <label class="lbl" style="display:flex;justify-content:space-between">
+            <span>Merge similar colours</span><em id="tolVal" style="font-style:normal;color:var(--dim)">off</em>
+          </label>
+          <input type="range" id="tol" min="0" max="90" step="3" value="0">
+          <p class="sub" style="margin-bottom:10px">A traced image arrives as dozens of near-identical shades.
+            Slide right to collect them into a few colours you can actually set.</p>
+        </div>
+        <div class="setall" id="setAllRow">
+          <span>Set every colour to</span>
+          <div>
+            <button data-all="cut">Cut</button><button data-all="score">Score</button>
+            <button data-all="engrave">Engrave</button><button data-all="ignore">Skip</button>
+          </div>
+        </div>
+        <div id="colours"></div>
+        <p class="sub">Outline colour wins over fill. <b style="color:var(--ink)">Cut</b> goes through, <b style="color:var(--ink)">Score</b> marks the surface, <b style="color:var(--ink)">Engrave</b> burns the shaded area away.</p>
+        <div id="bgRow"></div>
+      </div>
+
+      <div class="sec" id="secChecks" hidden>
+        <h2>Pre-flight</h2>
+        <div id="verdict"></div>
+        <div id="msgs"></div>
+      </div>
+    </div>
+
+    <div class="foot">
+      <button class="btn acc" id="dl" disabled>
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 2v8m0 0 3-3m-3 3L5 7M2.5 12.5h11"/></svg>
+        Download laser file</button>
+      <button class="btn" id="print" disabled>Print job sheet</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="gridbg" id="gridbg"></div>
+    <div class="hud" id="hud"></div>
+    <div class="stagewrap" id="stagewrap">
+      <div class="empty" id="empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 15l5-5 4 4 3-3 6 6"/></svg>
+        <div>No design loaded.<br>Drop a picture or an SVG into the panel on the left, or paste one with Ctrl&#8209;V.</div>
+      </div>
+    </div>
+    <div class="key" id="key" hidden>
+      <span><i style="background:var(--cut)"></i>Cut</span>
+      <span><i style="background:var(--score)"></i>Score</span>
+      <span><i style="background:var(--engrave)"></i>Engrave</span>
+      <em>Scroll to zoom · drag the design to move it · drag the background to pan</em>
+    </div>
+  </main>
+</div>
+
+<div class="sheet" id="sheet"></div>
+<div id="stage" style="position:fixed;left:-30000px;top:0;width:10px;height:10px;overflow:hidden"></div>
+
+<script>
+'use strict';
+const NS = 'http://www.w3.org/2000/svg';
+const PX_PER_MM = 96/25.4;
+const HAIRLINE_MM = 0.01;          // Universal wants <= 0.025mm (0.001") for vector
+const DRAWABLE = 'path,rect,circle,ellipse,line,polyline,polygon,text,image,use';
+const NON_RENDER = new Set(['defs','clippath','mask','marker','pattern','symbol']);
+
+// Universal Laser Systems maps pure RGB pen colours to power/speed in the print driver.
+const OPS = {
+  cut:     { label:'CUT',     pen:'#FF0000', pname:'Red',   pv:'#ff4d5e' },
+  score:   { label:'SCORE',   pen:'#0000FF', pname:'Blue',  pv:'#4b8cff' },
+  engrave: { label:'ENGRAVE', pen:'#000000', pname:'Black', pv:'#c9cfdd' },
+  ignore:  { label:'SKIP',    pen:null,      pname:'—',     pv:null }
+};
+const OP_ICON = {
+  cut:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3.5" y="3.5" width="13" height="13" rx="2"/></svg>',
+  score:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-dasharray="3 2.2"><path d="M3 10h14"/></svg>',
+  engrave:'<svg viewBox="0 0 20 20" fill="currentColor"><rect x="4" y="4" width="12" height="12" rx="1.5"/></svg>',
+  ignore:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="10" cy="10" r="6.5"/><path d="M5.5 14.5 14.5 5.5"/></svg>'
+};
+
+// Approximate ULS bed sizes — confirm against the plate on your own machine.
+const MACHINES = [
+  { id:'custom',  name:'Custom / measured',        w:600,  h:400 },
+  { id:'vls230',  name:'VLS2.30  ~406 × 305',      w:406,  h:305 },
+  { id:'vls350',  name:'VLS3.50  ~610 × 305',      w:610,  h:305 },
+  { id:'vls460',  name:'VLS4.60  ~610 × 457',      w:610,  h:457 },
+  { id:'vls660',  name:'VLS6.60  ~813 × 457',      w:813,  h:457 },
+  { id:'pls675',  name:'PLS6.75  ~813 × 457',      w:813,  h:457 },
+  { id:'ils1275', name:'ILS12.75 ~1219 × 610',     w:1219, h:610 }
+];
+
+const S = {
+  name:'design', svg:null, loaded:false,
+  vbX:0, vbY:0, vbW:0, vbH:0, mmW:0, mmH:0,
+  items:[], groups:new Map(), hasBg:0, removeBg:true,
+  bed:{ w:600, h:400 }, align:'top-left', pageMode:'bed',
+  pos:{ x:0, y:0 },                // artwork top-left on the bed, in mm
+  ppm:3,                           // screen pixels per mm in the preview
+  view:null,                       // {cx,cy,zoom} — null means "fit the bed"
+  tol:0,                           // merge tolerance for near-identical colours
+  opChoice:{},                     // colour -> operation the student actually picked
+  trace:{ on:false, t:128, sm:6, sp:3, invert:false }, traceCount:0,
+  outline:{ on:false, pad:4, r:3 },
+  show:{ cut:true, score:true, engrave:true }, grid:true, rule:true,
+  warnings:[], jobCode:''
+};
+const $ = id => document.getElementById(id);
+const round = n => Math.round(n*10)/10;
+const el = (t,a) => { const n=document.createElementNS(NS,t); for(const k in a) n.setAttribute(k,a[k]); return n; };
+
+/* ================= units ================= */
+function lengthToMm(str){
+  if(str==null) return null;
+  const m = String(str).trim().match(/^(-?[\d.]+)\s*(px|mm|cm|in|pt|pc|%)?$/i);
+  if(!m) return null;
+  const v = parseFloat(m[1]);
+  if(!isFinite(v) || v<=0) return null;
+  switch((m[2]||'px').toLowerCase()){
+    case '%': return null;
+    case 'mm': return v;
+    case 'cm': return v*10;
+    case 'in': return v*25.4;
+    case 'pt': return v*25.4/72;
+    case 'pc': return v*25.4/6;
+    default:   return v/PX_PER_MM;
+  }
+}
+// One user unit -> mm, per axis. Canva pages are square-pixelled, but unticking
+// "keep proportions" stretches one axis, so the two scales can differ.
+const sxMm = () => S.mmW / S.vbW;
+const syMm = () => S.mmH / S.vbH;
+
+/* ================= colour ================= */
+function toHex(css){
+  if(!css) return null;
+  const s = css.trim().toLowerCase();
+  if(s==='none'||s==='transparent') return null;
+  if(s.startsWith('url(')) return 'GRADIENT';
+  let m = s.match(/^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:[,\s/]+([\d.%]+))?\s*\)$/);
+  if(m){
+    if(m[4]!=null){
+      const a = m[4].endsWith('%') ? parseFloat(m[4])/100 : parseFloat(m[4]);
+      if(a===0) return null;
+    }
+    return '#'+[m[1],m[2],m[3]].map(n=>Math.round(parseFloat(n)).toString(16).padStart(2,'0')).join('').toUpperCase();
+  }
+  m = s.match(/^#([0-9a-f]{3})$/);  if(m) return '#'+m[1].split('').map(c=>c+c).join('').toUpperCase();
+  m = s.match(/^#([0-9a-f]{6})$/);  if(m) return '#'+m[1].toUpperCase();
+  return null;
+}
+const rgbOf = h => [1,3,5].map(i=>parseInt(h.substr(i,2),16));
+function near(hex,target,tol){
+  if(hex==='GRADIENT'||hex==='IMAGE') return false;
+  const a=rgbOf(hex), b=rgbOf(target);
+  return Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]) <= tol;
+}
+// Only *exact* pure red/blue imply intent. A dark-red fill is artwork, not a cut
+// instruction — guessing wrong there silently cuts a student's design in half.
+function defaultOp(hex,srcs,traced){
+  if(hex==='GRADIENT') return 'engrave';
+  if(hex==='#FF0000') return 'cut';
+  if(hex==='#0000FF') return 'score';
+  if(near(hex,'#FFFFFF',26)) return 'ignore';
+  // Tracing a picture is almost always "cut this shape out". The tracer fills its
+  // path, so the fill-vs-stroke rule below would otherwise guess Engrave.
+  if(traced) return 'cut';
+  return srcs.stroke > srcs.fill ? 'cut' : 'engrave';
+}
+
+/* ================= tracing a bitmap ================= */
+// A deliberately small monochrome tracer. Threshold the image, walk the pixel
+// boundaries into closed loops, simplify, round the corners, hand the result to
+// the ordinary SVG pipeline. The loops close by construction, which is the whole
+// reason this exists: traced cut lines from general-purpose tracers arrive open.
+const TR = { lum:null, W:0, H:0, natW:0, natH:0, plum:null, pW:0, pH:0, name:'traced', timer:null };
+const TRACE_MAX  = 2500;    // more outlines than this is speckle, not artwork
+const TRACE_HALT = 20000;   // stop walking entirely — a noise field has no useful end
+
+function lumFrom(im,W,H){
+  const c = document.createElement('canvas'); c.width=W; c.height=H;
+  const x = c.getContext('2d',{ willReadFrequently:true });
+  x.fillStyle='#fff'; x.fillRect(0,0,W,H);      // flatten transparency onto white
+  x.drawImage(im,0,0,W,H);
+  const d = x.getImageData(0,0,W,H).data, out = new Uint8Array(W*H);
+  for(let i=0,p=0;i<out.length;i++,p+=4) out[i] = (d[p]*77 + d[p+1]*150 + d[p+2]*29) >> 8;
+  return out;
+}
+
+// Otsu's method: pick the cut-off that best separates the image into two groups.
+// It gets a logo right about nine times in ten, which saves the student a fiddle.
+function otsu(lum){
+  const h = new Float64Array(256);
+  for(let i=0;i<lum.length;i++) h[lum[i]]++;
+  let sum=0; for(let i=0;i<256;i++) sum += i*h[i];
+  let wB=0, sumB=0, best=128, bestVar=-1;
+  for(let t=0;t<256;t++){
+    wB += h[t]; if(!wB) continue;
+    const wF = lum.length-wB; if(!wF) break;
+    sumB += t*h[t];
+    const diff = sumB/wB - (sum-sumB)/wF;
+    const v = wB*wF*diff*diff;
+    if(v>bestVar){ bestVar=v; best=t; }
+  }
+  return best;
+}
+
+function readImage(dataURL,name){
+  const im = new Image();
+  im.onerror = () => alert("That image could not be read.\n\nTry re-saving it as a PNG or JPG.");
+  im.onload = () => {
+    if(!im.naturalWidth || !im.naturalHeight){ im.onerror(); return; }
+    TR.natW = im.naturalWidth; TR.natH = im.naturalHeight;
+    // 1100px on the long edge is finer than the laser's kerf at any sane print
+    // size, and keeps a re-trace under a slider drag's worth of time.
+    const big = Math.max(im.naturalWidth, im.naturalHeight);
+    const k = Math.min(1, 1100/big);
+    TR.W = Math.max(1,Math.round(im.naturalWidth*k));
+    TR.H = Math.max(1,Math.round(im.naturalHeight*k));
+    TR.lum = lumFrom(im,TR.W,TR.H);
+    const pk = Math.min(1, 260/big);
+    TR.pW = Math.max(1,Math.round(im.naturalWidth*pk));
+    TR.pH = Math.max(1,Math.round(im.naturalHeight*pk));
+    TR.plum = lumFrom(im,TR.pW,TR.pH);
+    TR.name = (name||'traced').replace(/\.[a-z0-9]+$/i,'');
+
+    // Show the panel so the sliders are reachable even if this first trace finds
+    // nothing. S.trace.on is deliberately not touched here -- load() sets it, so a
+    // trace that comes back empty leaves the previous design correctly labelled.
+    // Otsu returns the last grey level of the dark class, but the ink test is a
+    // strict "<", so the cut-off sits one level above it. Without the +1 a pure
+    // black-and-white image -- a clean logo or a screenshot of black on white,
+    // i.e. the best case for tracing -- comes back with a cut-off of 0 and
+    // traces nothing at all. Derive the stored value back off the clamped
+    // slider so the number and the control can never disagree.
+    const pct = Math.min(98, Math.max(2, Math.round((otsu(TR.lum)+1)/255*100)));
+    $('thr').value = pct;
+    S.trace.t = Math.round(pct/100*255);
+    $('secTrace').hidden = false;
+    syncTraceLabels();
+    drawTracePreview();
+    runTrace(false);
+  };
+  im.src = dataURL;
+}
+
+function drawTracePreview(){
+  const cv = $('trCv'), W = TR.pW, H = TR.pH;
+  if(!TR.plum) return;
+  cv.width=W; cv.height=H;
+  const ctx = cv.getContext('2d'), img = ctx.createImageData(W,H), d = img.data;
+  const t = S.trace.t, inv = S.trace.invert;
+  for(let i=0,p=0;i<W*H;i++,p+=4){
+    const v = ((TR.plum[i]<t) !== inv) ? 20 : 232;
+    d[p]=d[p+1]=d[p+2]=v; d[p+3]=255;
+  }
+  ctx.putImageData(img,0,0);
+}
+
+// Boundaries run along pixel edges, never through pixel centres, so a contour is
+// a staircase on the integer lattice. A directed edge leaving vertex (x,y) is on
+// the boundary when it has ink on its left and bare paper on its right.
+function contours(bin,W,H,cap){
+  const f = (x,y) => (x<0||y<0||x>=W||y>=H) ? 0 : bin[y*W+x];
+  const ok = (x,y,d) => {
+    switch(d){
+      case 0: return f(x,y-1)===1   && f(x,y)===0;        // east
+      case 1: return f(x,y)===1     && f(x-1,y)===0;      // south
+      case 2: return f(x-1,y)===1   && f(x-1,y-1)===0;    // west
+      default:return f(x-1,y-1)===1 && f(x,y-1)===0;      // north
+    }
+  };
+  const VW = W+1, DX=[1,0,-1,0], DY=[0,1,0,-1];
+  const seen = new Uint8Array(VW*(H+1)*4);
+  const loops = [];
+  for(let y=0;y<=H && loops.length<cap;y++) for(let x=0;x<=W;x++){
+    // Cheap reject: a vertex with four identical neighbours has no boundary.
+    const a=f(x-1,y-1), b=f(x,y-1), c=f(x-1,y), e=f(x,y);
+    if(a===b && b===c && c===e) continue;
+    for(let d0=0;d0<4;d0++){
+      if(seen[(y*VW+x)*4+d0] || !ok(x,y,d0)) continue;
+      const pts=[];
+      let cx=x, cy=y, cd=d0;
+      for(;;){
+        const key=(cy*VW+cx)*4+cd;
+        if(seen[key]) break;
+        seen[key]=1;
+        pts.push(cx,cy);
+        cx+=DX[cd]; cy+=DY[cd];
+        // Turning left first makes the ink 4-connected, so two shapes that touch
+        // only at a corner stay two shapes instead of fusing into a pinch point.
+        let nd=-1;
+        const order=[(cd+3)&3, cd, (cd+1)&3];
+        for(let i=0;i<3;i++) if(ok(cx,cy,order[i])){ nd=order[i]; break; }
+        if(nd<0) break;
+        cd=nd;
+        if(cx===x && cy===y && cd===d0) break;
+      }
+      if(pts.length>=8) loops.push(pts);
+    }
+  }
+  return loops;
+}
+
+const polyArea = p => { let a=0; for(let i=0,n=p.length;i<n;i+=2){
+  const j=(i+2)%n; a += p[i]*p[j+1] - p[j]*p[i+1]; } return a/2; };
+
+// Ramer–Douglas–Peucker, iterative so a 50 000-point contour can't blow the stack.
+function rdp(pts,eps){
+  const n = pts.length/2;
+  if(n<3) return pts.slice();
+  const keep = new Uint8Array(n); keep[0]=1; keep[n-1]=1;
+  const stack=[0,n-1];
+  while(stack.length){
+    const b=stack.pop(), a=stack.pop();
+    if(b<=a+1) continue;
+    const ax=pts[a*2], ay=pts[a*2+1];
+    let dx=pts[b*2]-ax, dy=pts[b*2+1]-ay;
+    const L=Math.hypot(dx,dy)||1; dx/=L; dy/=L;
+    let worst=-1, wi=-1;
+    for(let i=a+1;i<b;i++){
+      const d=Math.abs((pts[i*2]-ax)*dy - (pts[i*2+1]-ay)*dx);
+      if(d>worst){ worst=d; wi=i; }
+    }
+    if(worst>eps){ keep[wi]=1; stack.push(a,wi,wi,b); }
+  }
+  const out=[];
+  for(let i=0;i<n;i++) if(keep[i]) out.push(pts[i*2],pts[i*2+1]);
+  return out;
+}
+// On a closed ring there is no natural start, so split at the two points that are
+// furthest apart before simplifying — otherwise the start point anchors a corner
+// that isn't there.
+function rdpRing(pts,eps){
+  const n = pts.length/2;
+  if(n<5 || eps<=0) return pts.slice();
+  let k=1, best=-1;
+  for(let i=1;i<n;i++){
+    const dx=pts[i*2]-pts[0], dy=pts[i*2+1]-pts[1], d=dx*dx+dy*dy;
+    if(d>best){ best=d; k=i; }
+  }
+  const a = rdp(pts.slice(0,(k+1)*2), eps);
+  const b = rdp(pts.slice(k*2).concat([pts[0],pts[1]]), eps);
+  return a.concat(b.slice(2, b.length-2));
+}
+
+const n2 = v => { const r = Math.round(v*100)/100; return r===0 ? '0' : String(r); };
+
+// Corner rounding rather than curve fitting: cut a fillet into every vertex and
+// join the fillets with straight runs. Radius is capped at half the shorter
+// neighbouring edge, so neighbouring fillets can never overlap and invert.
+function ringPath(pts,smooth){
+  const n = pts.length/2;
+  if(n<3) return '';
+  const P = i => { const j=((i%n)+n)%n*2; return [pts[j],pts[j+1]]; };
+  if(smooth<=0){
+    let d = 'M'+n2(pts[0])+' '+n2(pts[1]);
+    for(let i=1;i<n;i++) d += 'L'+n2(pts[i*2])+' '+n2(pts[i*2+1]);
+    return d+'Z';
+  }
+  let d='', started=false;
+  for(let i=0;i<n;i++){
+    const p0=P(i-1), p1=P(i), p2=P(i+1);
+    const ix=p1[0]-p0[0], iy=p1[1]-p0[1], ox=p2[0]-p1[0], oy=p2[1]-p1[1];
+    const li=Math.hypot(ix,iy)||1, lo=Math.hypot(ox,oy)||1;
+    const r = Math.min(li,lo)*0.5*smooth;
+    const ax=p1[0]-ix/li*r, ay=p1[1]-iy/li*r;
+    const bx=p1[0]+ox/lo*r, by=p1[1]+oy/lo*r;
+    d += (started?'L':'M') + n2(ax)+' '+n2(ay);
+    started = true;
+    d += 'Q'+n2(p1[0])+' '+n2(p1[1])+' '+n2(bx)+' '+n2(by);
+  }
+  return d+'Z';
+}
+
+const SM_WORDS = ['none','minimal','very low','low','low','medium','medium','high','high','very high','maximum'];
+const SP_WORDS = ['off','dust','dust','tiny','tiny','small','small','medium','medium','large','large'];
+function syncTraceLabels(){
+  $('thrVal').textContent = Math.round(S.trace.t/255*100)+'%';
+  $('smVal').textContent  = SM_WORDS[S.trace.sm] || '';
+  $('spVal').textContent  = SP_WORDS[S.trace.sp] || '';
+}
+
+function runTrace(keep){
+  if(!TR.lum) return;
+  const t0 = performance.now();
+  const { W, H, lum } = TR;
+  const t = S.trace.t, inv = S.trace.invert;
+  const bin = new Uint8Array(W*H);
+  for(let i=0;i<bin.length;i++) bin[i] = ((lum[i]<t) !== inv) ? 1 : 0;
+
+  const eps    = S.trace.sm*0.25;
+  const fillet = S.trace.sm/10;
+  const minA   = S.trace.sp*S.trace.sp*3;
+  const parts = [];
+  for(const lp of contours(bin,W,H,TRACE_HALT)){
+    if(minA && Math.abs(polyArea(lp)) < minA) continue;
+    const s = rdpRing(lp,eps);
+    if(s.length < 6) continue;
+    const d = ringPath(s,fillet);
+    if(d) parts.push(d);
+    if(parts.length >= TRACE_HALT) break;
+  }
+  const ms = Math.round(performance.now()-t0);
+  S.traceCount = parts.length;
+  const msg = $('trMsg');
+
+  if(!parts.length){
+    $('trCount').textContent = 'nothing found';
+    msg.hidden = false;
+    msg.textContent = 'Nothing is dark enough to trace at this cut-off. Drag the slider, '
+      + 'or tick "trace the light parts instead" if the design is light on a dark background.';
+    return;
+  }
+  // Past a few thousand outlines the file stops being a laser job and starts being
+  // a denial-of-service on the browser, so refuse it rather than wedge the tab.
+  if(parts.length > TRACE_MAX){
+    $('trCount').textContent = parts.length.toLocaleString()+'+ shapes';
+    msg.hidden = false;
+    msg.textContent = 'That is ' + parts.length.toLocaleString() + ' separate outlines — speckle from a '
+      + 'photo, not detail, and far too many to cut. Drag "Remove specks" to the right and move the '
+      + 'cut-off until the count drops. The last good trace is still in the preview.';
+    return;
+  }
+  msg.hidden = true;
+  $('trCount').textContent = parts.length.toLocaleString()
+    + ' shape' + (parts.length===1?'':'s') + ' · ' + ms + ' ms';
+
+  // Default physical size: what the image would be at 96 dpi, but never more than
+  // three-quarters of the shorter side of the bed, so a phone photo isn't 1 m wide.
+  const natMm = Math.max(TR.natW,TR.natH)/PX_PER_MM;
+  const mmLong = Math.min(natMm, Math.min(S.bed.w,S.bed.h)*0.75);
+  const k = mmLong/Math.max(W,H);
+  const svg = `<svg xmlns="${NS}" width="${(W*k).toFixed(3)}mm" height="${(H*k).toFixed(3)}mm" `
+    + `viewBox="0 0 ${W} ${H}"><path data-traced="1" fill="#000000" fill-rule="evenodd" `
+    + `d="${parts.join('')}"/></svg>`;
+  load(svg, TR.name+'.svg', keep, true);
+}
+
+// The sliders are cheap to move and expensive to act on, so nudge the black/white
+// thumbnail immediately and let the re-trace trail behind it.
+function queueTrace(){
+  drawTracePreview();
+  syncTraceLabels();
+  clearTimeout(TR.timer);
+  TR.timer = setTimeout(()=>runTrace(true), 130);
+}
+
+/* ================= load ================= */
+// fromTrace marks the one caller that is handing us tracer output. Every other
+// route is a real vector file, so this is the single place that decides whether
+// the job is "traced" -- otherwise the flag goes stale the moment a student
+// loads an SVG after a picture, and the trace panel and job sheet both lie.
+function load(text,name,keep,fromTrace){
+  const doc = new DOMParser().parseFromString(text,'image/svg+xml');
+  const root = doc.documentElement;
+  if(!root || root.nodeName.toLowerCase()!=='svg' || doc.querySelector('parsererror')){
+    alert("That file could not be read.\n\nDrop a picture (PNG or JPG) and it will be traced, "
+        + "or an SVG if you already have a vector file.");
+    return;
+  }
+  S.trace.on = !!fromTrace;
+  $('secTrace').hidden = !fromTrace;
+  // A re-trace is the same design with a slider moved, not a new job: keep the
+  // size, the position on the bed and whatever the student set each colour to.
+  const prev = (keep && S.loaded)
+    ? { mmW:S.mmW, mmH:S.mmH, pos:{...S.pos}, align:S.align, code:S.jobCode } : null;
+  S.name = (name||'design').replace(/\.svg$/i,'');
+  $('stage').textContent = '';
+  S.svg = document.importNode(root,true);
+  $('stage').appendChild(S.svg);
+
+  const vb = (S.svg.getAttribute('viewBox')||'').trim().split(/[\s,]+/).map(Number);
+  const wMm = lengthToMm(S.svg.getAttribute('width'));
+  const hMm = lengthToMm(S.svg.getAttribute('height'));
+
+  if(vb.length===4 && vb.every(isFinite) && vb[2]>0 && vb[3]>0){
+    S.vbX=vb[0]; S.vbY=vb[1]; S.vbW=vb[2]; S.vbH=vb[3];
+  } else {
+    let bb; try{ bb = S.svg.getBBox(); }catch(e){ bb={x:0,y:0,width:0,height:0}; }
+    S.vbX=0; S.vbY=0;
+    S.vbW = (wMm ? wMm*PX_PER_MM : bb.width)  || 100;
+    S.vbH = (hMm ? hMm*PX_PER_MM : bb.height) || 100;
+  }
+  S.mmW = wMm || S.vbW/PX_PER_MM;
+  S.mmH = hMm || S.vbH/PX_PER_MM;
+
+  if(!prev){ S.opChoice = {}; S.view = null; }   // a new design gets fresh guesses
+  harvest();
+  if(!S.items.length){
+    alert('No shapes found in that SVG.\n\nThat usually means the design was really just a '
+        + 'picture inside an SVG wrapper, which exports empty.\n\nDrop the picture itself here '
+        + 'instead (PNG or JPG) and it will be traced into real cut lines.');
+    return;
+  }
+  S.loaded = true;
+  if(prev){
+    S.mmW=prev.mmW; S.mmH=prev.mmH; S.pos=prev.pos; S.align=prev.align; S.jobCode=prev.code;
+  } else {
+    S.jobCode = rnd4()+'-'+rnd4();
+    S.align = 'top-left'; S.pos = { x:0, y:0 };
+  }
+  syncSize(); syncPos(); syncPad();
+  ['secSize','secPlace','secOutline','secColours','secChecks'].forEach(i=>$(i).hidden=false);
+  $('dl').disabled = $('print').disabled = false;
+  $('empty').hidden = true; $('key').hidden = false;
+  if(!prev) $('dropHost').innerHTML = `<div class="filechip">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 1.5H4a1.5 1.5 0 0 0-1.5 1.5v10A1.5 1.5 0 0 0 4 14.5h8a1.5 1.5 0 0 0 1.5-1.5V6z"/><path d="M9 1.5V6h4.5"/></svg>
+      <span>${S.name}${S.trace.on?' · traced':'.svg'}</span></div>`;
+  buildColourRows();
+  refresh();
+}
+const rnd4 = () => Math.random().toString(36).slice(2,6).toUpperCase();
+
+function inNonRender(node){
+  for(let p=node.parentNode; p && p.nodeType===1; p=p.parentNode)
+    if(NON_RENDER.has(p.nodeName.toLowerCase())) return true;
+  return false;
+}
+
+// getBBox() is in the element's own coordinate space and ignores ancestor
+// transforms. Canva nests nearly everything inside transformed <g>s, so every
+// measurement has to be mapped into root viewBox space first.
+function bboxInRoot(node){
+  const b = node.getBBox();
+  const rm = S.svg.getScreenCTM(), em = node.getScreenCTM();
+  if(!rm || !em) return b;
+  const M = rm.inverse().multiply(em);
+  const pt = S.svg.createSVGPoint();
+  let x1=Infinity,y1=Infinity,x2=-Infinity,y2=-Infinity;
+  for(const [px,py] of [[b.x,b.y],[b.x+b.width,b.y],[b.x,b.y+b.height],[b.x+b.width,b.y+b.height]]){
+    pt.x=px; pt.y=py;
+    const p = pt.matrixTransform(M);
+    x1=Math.min(x1,p.x); y1=Math.min(y1,p.y); x2=Math.max(x2,p.x); y2=Math.max(y2,p.y);
+  }
+  return { x:x1, y:y1, width:x2-x1, height:y2-y1 };
+}
+
+function harvest(){
+  S.items=[]; S.groups=new Map(); S.hasBg=0;
+  const vbArea = S.vbW*S.vbH;
+  S.svg.querySelectorAll(DRAWABLE).forEach(node => {
+    if(inNonRender(node)) return;
+    const cs = getComputedStyle(node);
+    if(cs.display==='none' || cs.visibility==='hidden') return;
+    const opacity = parseFloat(cs.opacity);
+    if(opacity===0) return;
+
+    let bbox; try{ bbox = bboxInRoot(node); }catch(e){ return; }
+    const tag = node.nodeName.toLowerCase();
+    if(tag!=='image' && bbox.width===0 && bbox.height===0) return;
+
+    const fo = parseFloat(cs.fillOpacity), so = parseFloat(cs.strokeOpacity);
+    const fill   = fo===0 ? null : toHex(cs.fill);
+    const stroke = so===0 ? null : toHex(cs.stroke);
+    const sw = parseFloat(cs.strokeWidth)||0;
+    const hasStroke = stroke && sw>0;
+
+    let colour, src;
+    if(tag==='image'){ colour='IMAGE'; src='image'; }
+    else if(hasStroke){ colour=stroke; src='stroke'; }
+    else if(fill){ colour=fill; src='fill'; }
+    else return;
+
+    // A shape that covers the whole page is Canva's backing rectangle, not artwork.
+    // Traced output is exempt: the tracer emits every contour as one path, so its
+    // bbox is the union of them all and reaches the edges whenever the ink does.
+    const traced = node.hasAttribute('data-traced');
+    const isBg = src!=='image' && !traced
+                 && bbox.width*bbox.height >= vbArea*0.985;
+    if(isBg) S.hasBg++;
+
+    S.items.push({ node, tag, colour, raw:colour, src, bbox, isBg, traced, strokeWidth:sw,
+                   bothInks: !!(fill && hasStroke),
+                   faded: (opacity<1) || (fo>0&&fo<1) || (so>0&&so<1) });
+  });
+  regroup();
+}
+
+// Bucket the harvested colours into the groups shown in the sidebar. An
+// auto-traced image arrives as dozens of shades that are visually one colour, so
+// the tolerance slider collapses them into something a student can actually set.
+function regroup(){
+  const tol = S.tol||0;
+  const counts = new Map();
+  for(const i of S.items) counts.set(i.raw, (counts.get(i.raw)||0)+1);
+
+  // Pick representatives most-used first, but let the pure pen colours win ties —
+  // if exact red is in the file it should stay the one that defaults to Cut.
+  const penRank = h => (h==='#FF0000'||h==='#0000FF'||h==='#000000'||h==='#FFFFFF') ? 0 : 1;
+  const order = [...counts.entries()].sort((a,b)=>
+    penRank(a[0])-penRank(b[0]) || b[1]-a[1] || (a[0]<b[0]?-1:1));
+
+  const map = new Map();
+  for(const [hex] of order){
+    if(map.has(hex)) continue;
+    map.set(hex,hex);
+    if(tol>0 && hex!=='IMAGE' && hex!=='GRADIENT')
+      for(const [other] of order)
+        if(!map.has(other) && other!=='IMAGE' && other!=='GRADIENT' && near(other,hex,tol))
+          map.set(other,hex);
+  }
+
+  S.groups = new Map();
+  for(const i of S.items){
+    i.colour = map.get(i.raw) || i.raw;
+    if(!S.groups.has(i.colour))
+      S.groups.set(i.colour,{ hex:i.colour, items:[], srcs:{fill:0,stroke:0}, op:null,
+                              shades:new Set(), traced:false });
+    const g = S.groups.get(i.colour);
+    g.items.push(i); g.shades.add(i.raw);
+    if(i.traced) g.traced = true;
+    if(i.src==='fill') g.srcs.fill++; else if(i.src==='stroke') g.srcs.stroke++;
+  }
+  // A choice the student already made outranks the guess, so re-merging or
+  // rotating does not silently throw their work away.
+  for(const g of S.groups.values())
+    g.op = S.opChoice[g.hex] || (g.hex==='IMAGE' ? 'engrave' : defaultOp(g.hex,g.srcs,g.traced));
+}
+
+const activeItems = () =>
+  S.items.filter(i => !(S.removeBg && i.isBg) && S.groups.get(i.colour).op!=='ignore');
+
+// Shape bounds in page millimetres, before placement.
+function rawArtBoxMm(){
+  const live = activeItems();
+  if(!live.length) return null;
+  const sx = sxMm(), sy = syMm();
+  let x1=Infinity,y1=Infinity,x2=-Infinity,y2=-Infinity;
+  for(const i of live){
+    x1=Math.min(x1,i.bbox.x); y1=Math.min(y1,i.bbox.y);
+    x2=Math.max(x2,i.bbox.x+i.bbox.width); y2=Math.max(y2,i.bbox.y+i.bbox.height);
+  }
+  return { x:(x1-S.vbX)*sx, y:(y1-S.vbY)*sy, w:(x2-x1)*sx, h:(y2-y1)*sy };
+}
+const olPad = () => S.outline.on ? Math.max(0,S.outline.pad) : 0;
+
+// Everything that will end up on the bed, generated cut outline included — this
+// is what gets placed, dragged, fitted and bed-checked.
+function artBoxMm(){
+  const a = rawArtBoxMm(); if(!a) return null;
+  const m = olPad();
+  return m ? { x:a.x-m, y:a.y-m, w:a.w+2*m, h:a.h+2*m } : a;
+}
+// Where the artwork sits on the bed. This is now a plain position, not a corner
+// plus an offset — dragging in the preview has to be able to write straight to it.
+const placeMm = art => art ? { x:S.pos.x, y:S.pos.y } : { x:0, y:0 };
+
+function alignPos(art){
+  const [v,hz] = S.align.split('-');
+  return {
+    x: hz==='left' ? 0 : hz==='centre' ? (S.bed.w-art.w)/2 : S.bed.w-art.w,
+    y: v==='top'   ? 0 : v==='middle'  ? (S.bed.h-art.h)/2 : S.bed.h-art.h
+  };
+}
+// Keep at least a 10 mm sliver on the bed so a design can never be flung out of sight.
+function clampPos(p,art){
+  return { x: Math.min(Math.max(p.x, 10-art.w), S.bed.w-10),
+           y: Math.min(Math.max(p.y, 10-art.h), S.bed.h-10) };
+}
+const syncPos = () => { $('px').value = round(S.pos.x); $('py').value = round(S.pos.y); };
+const syncSize = () => { $('w').value = round(S.mmW); $('h').value = round(S.mmH); };
+function syncPad(){
+  $('pad').querySelectorAll('button').forEach(b=>
+    b.setAttribute('aria-pressed', b.dataset.al===S.align));
+}
+
+/* ================= pre-flight ================= */
+// A path can be perfectly closed without ever using Z — tracers routinely walk
+// the outline back to the start coordinate instead. Testing for a trailing Z
+// alone reports those as open and buries the student in false alarms, so every
+// subpath is measured: closed if it ends with Z, or ends where it began.
+let _probe = null;
+function subpathClosed(d){
+  if(/[zZ]\s*$/.test(d.trim())) return true;
+  if(!_probe){ _probe = el('path'); $('stage').appendChild(_probe); }
+  _probe.setAttribute('d', d);
+  try{
+    const L = _probe.getTotalLength();
+    if(!(L>0)) return true;                       // degenerate, not worth flagging
+    const a = _probe.getPointAtLength(0), b = _probe.getPointAtLength(L);
+    return Math.hypot(a.x-b.x, a.y-b.y) <= Math.max(0.05, L*0.002);
+  }catch(e){ return false; }
+}
+function isOpen(item){
+  if(item.tag==='line') return true;
+  if(item.tag==='polyline'){
+    const p = (item.node.getAttribute('points')||'').trim().split(/[\s,]+/).map(Number);
+    if(p.length<6) return true;
+    return Math.hypot(p[0]-p[p.length-2], p[1]-p[p.length-1]) > 0.05;
+  }
+  if(item.tag!=='path') return false;             // rect/circle/ellipse/polygon are closed
+  const d = item.node.getAttribute('d')||'';
+  const subs = d.match(/[Mm][^Mm]*/g);
+  if(!subs) return true;
+  return !subs.every(subpathClosed);
+}
+
+function preflight(){
+  const W=[]; const add=(level,t,d)=>W.push({level,t,d});
+  const byOp = op => { const a=[]; for(const g of S.groups.values()) if(g.op===op) a.push(...g.items); return a; };
+  const cuts = byOp('cut'), scores = byOp('score');
+  const active = activeItems();
+  const sx = sxMm(), sy = syMm();
+
+  if(!active.length) add('bad','Nothing will be made','Every colour is set to Skip, so the laser has nothing to do.');
+  else if(!cuts.length && !S.outline.on) add('warn','No cut lines','Nothing is set to Cut, so the piece will not come free of the sheet. Fine if you only want engraving.');
+
+  const art = artBoxMm(), pos = placeMm(art);
+  if(art){
+    // Too big is a problem whatever the page setting — it cannot physically be cut.
+    if(art.w > S.bed.w+0.5 || art.h > S.bed.h+0.5)
+      add('bad','Too big for the bed',
+        `Artwork is ${round(art.w)} × ${round(art.h)} mm but the bed is only ${S.bed.w} × ${S.bed.h} mm. `
+        + `Press "Fit to bed" to shrink it, pull a corner in the preview, or rotate it.`);
+    else if(S.pageMode==='bed' && (pos.x < -0.5 || pos.y < -0.5 ||
+            pos.x+art.w > S.bed.w+0.5 || pos.y+art.h > S.bed.h+0.5))
+      add('bad','Hanging off the bed',
+        'Part of the design sits outside the bed and would be lost. Drag it back inside the dashed outline, '
+        + 'or click a corner on the placement pad.');
+  }
+
+  const openCuts = cuts.filter(isOpen).length;
+  if(openCuts) add('warn', openCuts+' open cut '+(openCuts===1?'line':'lines'),
+    'These cut lines do not join back up, so the shape will not drop out in one piece. '
+    + 'If they are meant to be surface detail, set that colour to Score instead. '
+    + 'If you just need the piece to come free, tick "Add a cut line around the design" above.');
+
+  const seen=new Map(); let dupes=0;
+  for(const i of cuts.concat(scores)){
+    const key = [i.tag, i.node.getAttribute('d')||'',
+      Math.round(i.bbox.x*100), Math.round(i.bbox.y*100),
+      Math.round(i.bbox.width*100), Math.round(i.bbox.height*100)].join('|');
+    seen.set(key,(seen.get(key)||0)+1);
+    if(seen.get(key)===2) dupes++;
+  }
+  if(dupes) add('warn', dupes+' doubled-up '+(dupes===1?'line':'lines'),
+    'The same line sits exactly on top of itself, so the laser cuts it twice — a scorched edge and a genuine fire risk. Usually a stray copy-paste.');
+
+  const tiny = active.filter(i => i.bbox.width*sx < 1 && i.bbox.height*sy < 1).length;
+  if(tiny) add('warn', tiny+' shape'+(tiny===1?'':'s')+' under 1 mm',
+    'Detail this small burns away to nothing, and loose offcuts fall through the grid.');
+
+  // A trace that comes back with thousands of outlines is speckle, not detail.
+  if(S.trace.on && S.traceCount > 400)
+    add(S.traceCount > 2000 ? 'bad' : 'warn', S.traceCount.toLocaleString()+' traced outlines',
+      'That is far more separate shapes than a laser job should have — almost always speckle from a '
+      + 'photo rather than real detail, and it would take hours to run. In the Trace panel, slide '
+      + '"Remove specks" to the right and move the black/white cut-off until the count drops into the tens.');
+
+  const texts = active.filter(i=>i.tag==='text').length;
+  if(texts) add('bad', texts+' piece'+(texts===1?'':'s')+' of live text',
+    'This text is still editable text, not outlines, so it will change font or disappear on the laser PC. Fix in Canva: select the text, right-click, and use the option to flatten or ungroup it to shapes before downloading.');
+
+  const grads = S.groups.get('GRADIENT');
+  if(grads && grads.op!=='ignore') add('warn', grads.items.length+' gradient or pattern fill',
+    'A laser has one power setting per colour, so it cannot fade. These come out as one flat tone. Swap to solid colours in Canva for a predictable result.');
+
+  const imgs = S.groups.get('IMAGE');
+  if(imgs && imgs.op!=='ignore') add('warn', imgs.items.length+' photo'+(imgs.items.length===1?'':'s')+' in the design',
+    'A photo can only be raster-engraved, never cut, and it engraves slowly. Check this is what you want before running a long job.');
+
+  const faded = active.filter(i=>i.faded).length;
+  if(faded) add('warn', faded+' see-through shape'+(faded===1?'':'s'),
+    'Partly transparent shapes have been forced to solid — the laser cannot do half-strength from opacity. If you wanted a lighter burn, give it its own colour and turn the power down in the driver.');
+
+  if(S.svg.querySelector('clipPath,mask')) add('warn','Cropped or masked shapes',
+    'Part of this design is cropped. The crop is preserved, but some laser software ignores it and cuts the whole original shape including the hidden part. Compare the preview with your Canva design.');
+
+  if(S.svg.querySelector('use')) add('warn','Re-used symbols',
+    'This file re-uses shapes by reference, so colour changes may not reach all of them. Check the preview matches what you expect.');
+
+  if(S.hasBg && !S.removeBg) add('warn','Full-page background included',
+    'A shape covers the whole page. Left in, it engraves the entire sheet or cuts a border around everything.');
+
+  const both = active.filter(i=>i.bothInks).length;
+  if(both) add('warn', both+' shape'+(both===1?'':'s')+' with an outline and a fill',
+    'Only the outline colour was used for these. If the filled area should be engraved too, give it its own colour in Canva.');
+
+  S.warnings = W;
+  return W;
+}
+
+/* ================= build output ================= */
+// Keeps the original tree intact (transforms, clip paths, defs) and restyles in
+// place, then wraps it in one transform that converts user units to millimetres
+// and positions the artwork on the bed.
+function buildOutput(preview){
+  const inner = S.svg.cloneNode(true);
+  inner.querySelectorAll('style,title,desc,metadata').forEach(n=>n.remove());
+
+  const srcEls = Array.from(S.svg.querySelectorAll(DRAWABLE));
+  const outEls = Array.from(inner.querySelectorAll(DRAWABLE));
+  const byNode = new Map(S.items.map(i=>[i.node,i]));
+  const sx = sxMm(), sy = syMm();
+  // A stretched design scales strokes unevenly, so size the hairline off the
+  // larger axis — that way the widest it can ever render is still 0.01 mm.
+  const s = Math.max(sx,sy);
+  const hair = HAIRLINE_MM / s;              // 0.01 mm expressed in user units
+  const used = { cut:0, score:0, engrave:0 };
+
+  srcEls.forEach((src,idx)=>{
+    const node = outEls[idx];
+    if(!node) return;
+    if(inNonRender(src)) return;             // leave clipPath/defs contents alone
+    const item = byNode.get(src);
+    if(!item){ node.remove(); return; }
+
+    const op = (S.removeBg && item.isBg) ? 'ignore' : S.groups.get(item.colour).op;
+    if(op==='ignore'){ node.remove(); return; }
+    if(preview && !S.show[op]){ node.remove(); return; }
+    used[op]++;
+
+    node.removeAttribute('class');
+    node.removeAttribute('data-traced');     // internal marker, not for the driver
+    if(item.tag==='image') return;           // rasters keep their own pixels
+
+    ['fill','stroke','stroke-width','fill-opacity','stroke-opacity','opacity',
+     'filter','mix-blend-mode','style'].forEach(a=>node.removeAttribute(a));
+
+    const pen = preview ? OPS[op].pv : OPS[op].pen;
+    const css = [];
+    if(op==='engrave' && item.src==='fill'){
+      css.push('fill:'+pen,'stroke:none');
+    } else if(op==='engrave'){
+      css.push('fill:none','stroke:'+pen,'stroke-width:'+(item.strokeWidth||hair));
+    } else {
+      // Universal needs hairline vectors; on screen that is invisible, so the
+      // preview fakes a width of roughly 1.4 screen pixels instead.
+      css.push('fill:none','stroke:'+pen,
+               'stroke-width:'+(preview ? Math.max(hair, (1.4/(S.ppm||3))/s) : hair),
+               'stroke-linejoin:round','stroke-linecap:round');
+    }
+    css.push('fill-opacity:1','stroke-opacity:1','opacity:1','filter:none');
+    node.setAttribute('style',css.join(';'));
+  });
+
+  inner.querySelectorAll('g').forEach(g=>{
+    if(inNonRender(g)) return;
+    const p = g.parentNode;
+    if(p && p.nodeType===1 && NON_RENDER.has(p.nodeName.toLowerCase())) return;
+    if(!g.querySelector(DRAWABLE)) g.remove();
+    else ['style','fill','stroke','class'].forEach(a=>g.removeAttribute(a));
+  });
+
+  const art = artBoxMm();
+  const pos = placeMm(art);
+  // The preview always shows the artwork sitting on the bed. A "just art" export
+  // is cropped tight instead, so there the artwork goes to the page origin.
+  const onBed = preview || S.pageMode==='bed';
+  const pageW = onBed ? S.bed.w : (art ? art.w : S.mmW);
+  const pageH = onBed ? S.bed.h : (art ? art.h : S.mmH);
+  const tx = art ? (onBed ? pos.x : 0) - art.x : 0;
+  const ty = art ? (onBed ? pos.y : 0) - art.y : 0;
+
+  const out = el('svg',{
+    xmlns:NS, 'xmlns:xlink':'http://www.w3.org/1999/xlink',
+    width:round(pageW)+'mm', height:round(pageH)+'mm',
+    viewBox:`0 0 ${round(pageW)} ${round(pageH)}`
+  });
+  const wrap = el('g',{ transform:
+    `translate(${tx} ${ty}) scale(${sx} ${sy}) translate(${-S.vbX} ${-S.vbY})` });
+  while(inner.firstChild) wrap.appendChild(inner.firstChild);
+  out.appendChild(wrap);
+
+  // Generated cut outline. Drawn in page millimetres rather than inside the
+  // artwork transform, so it is a true rectangle however the design is scaled.
+  if(S.outline.on && art && (!preview || S.show.cut)){
+    const ox = onBed ? pos.x : 0, oy = onBed ? pos.y : 0;
+    out.appendChild(el('rect',{
+      x:ox, y:oy, width:art.w, height:art.h,
+      rx:Math.max(0, Math.min(S.outline.r, art.w/2, art.h/2)),
+      fill:'none', stroke: preview ? OPS.cut.pv : OPS.cut.pen,
+      'stroke-width': preview ? Math.max(HAIRLINE_MM, 1.4/(S.ppm||3)) : HAIRLINE_MM
+    }));
+    used.cut++;
+  }
+  return { svg:out, used, art, pos, pageW, pageH };
+}
+
+/* ================= render ================= */
+function refresh(){
+  if(!S.loaded) return;
+  S.bed.w = Math.max(10, +$('bw').value||600);
+  S.bed.h = Math.max(10, +$('bh').value||400);
+  S.pos.x = +$('px').value||0;
+  S.pos.y = +$('py').value||0;
+  S.material = $('mat').value.trim();
+  $('machChip').textContent = 'Universal · '+S.bed.w+' × '+S.bed.h;
+  $('pageNote').textContent = S.pageMode==='bed'
+    ? 'The file is the full size of the bed, so the artwork lands exactly where you put it here. Best for Universal.'
+    : 'The file is cropped tight to the artwork. You position it yourself in the laser software.';
+
+  syncColourRows();
+  renderMsgs(preflight());
+  renderCanvas();
+
+  const art = artBoxMm();
+  $('sizeNote').textContent = art
+    ? `Artwork covers ${round(art.w)} × ${round(art.h)} mm of a ${round(S.mmW)} × ${round(S.mmH)} mm page.`
+    : 'Nothing visible — every colour is set to Skip.';
+}
+
+// Row order is fixed once, at harvest. Sorting by current operation would make
+// a row leap up the list the instant you tap Cut, moving the next row under the
+// cursor mid-click.
+function buildColourRows(){
+  const host = $('colours');
+  host.innerHTML = '';
+  const special = h => (h==='IMAGE'||h==='GRADIENT') ? 1 : 0;
+  const all = [...S.groups.values()].sort((a,b)=>
+    special(a.hex)-special(b.hex) || b.items.length-a.items.length || (a.hex<b.hex?-1:1));
+  $('cCount').textContent = all.length;
+
+  // Merging only has something to do when the file actually arrived with a pile of
+  // near-identical shades. A traced image is one colour and a plain design is two
+  // or three, so the slider is pure clutter there. Count the RAW colours, not the
+  // merged ones -- keying off the merged count would make the slider vanish the
+  // moment it worked, stranding the student with no way to slide back.
+  const rawCount = new Set(S.items.map(i=>i.raw)).size;
+  $('mergeRow').hidden  = rawCount < 3;
+  // With a single colour the row below already has the same four buttons.
+  $('setAllRow').hidden = all.length < 2;
+
+  // A traced image can arrive with hundreds of colours. Rendering a card row for
+  // every one locks the browser up and is useless to read, so show the ones that
+  // matter and point at the slider for the rest.
+  const CAP = 40;
+  const list = all.slice(0,CAP);
+  if(all.length > CAP){
+    const more = document.createElement('div');
+    more.className = 'more';
+    more.innerHTML = `+ ${all.length-CAP} more colours, all set to
+      <b style="color:var(--ink)">${OPS[all[CAP].op].label}</b>.
+      Use the slider above to merge them, or "Set every colour to".`;
+    host.appendChild(more);
+  }
+
+  list.forEach(g=>{
+    const special = g.hex==='IMAGE' || g.hex==='GRADIENT';
+    const label = g.hex==='IMAGE' ? 'Photo' : g.hex==='GRADIENT' ? 'Gradient' : g.hex;
+    const srcTxt = (g.hex==='IMAGE' ? 'image'
+      : [g.srcs.stroke?'outline':null, g.srcs.fill?'fill':null].filter(Boolean).join(' + '))
+      + (g.shades.size>1 ? ', '+g.shades.size+' shades' : '');
+    const row = document.createElement('div');
+    row.className = 'crow';
+    row.innerHTML = `<div class="chead">
+        <span class="sw" style="${special
+          ? 'background:repeating-linear-gradient(45deg,#555,#555 4px,#999 4px,#999 8px)'
+          : 'background:'+g.hex}"></span>
+        <code>${label}</code>
+        <em>${g.items.length} × ${srcTxt}</em>
+      </div><div class="cards c4"></div>`;
+    const cards = row.querySelector('.cards');
+    const choices = g.hex==='IMAGE' ? ['engrave','ignore'] : ['cut','score','engrave','ignore'];
+    if(choices.length===2) cards.style.gridTemplateColumns='1fr 1fr';
+    g.btns = {};
+    choices.forEach(op=>{
+      const b = document.createElement('button');
+      b.className='card'; b.setAttribute('aria-pressed', g.op===op);
+      b.innerHTML = OP_ICON[op]+'<span>'+OPS[op].label+'</span>';
+      b.onclick = ()=>{ g.op=op; S.opChoice[g.hex]=op; refresh(); };
+      cards.appendChild(b);
+      g.btns[op] = b;
+    });
+    host.appendChild(row);
+  });
+
+  $('bgRow').innerHTML = S.hasBg
+    ? `<label style="display:flex;gap:7px;align-items:flex-start;margin-top:9px;font-size:11.5px;color:var(--dim);cursor:pointer">
+         <input type="checkbox" id="rmbg" ${S.removeBg?'checked':''} style="width:auto;margin-top:2px">
+         <span>Drop the full-page background shape (${S.hasBg} found)</span></label>` : '';
+  if(S.hasBg) $('rmbg').onchange = e => { S.removeBg = e.target.checked; refresh(); };
+}
+
+// Per-refresh update: touch only the pressed state, never the DOM structure.
+function syncColourRows(){
+  for(const g of S.groups.values()){
+    if(!g.btns) continue;
+    for(const op in g.btns) g.btns[op].setAttribute('aria-pressed', g.op===op);
+  }
+}
+
+function renderMsgs(W){
+  const bad = W.filter(w=>w.level==='bad').length;
+  const warn = W.filter(w=>w.level==='warn').length;
+  $('verdict').innerHTML = bad
+    ? `<div class="verdict bad">NEEDS FIXING — ${bad} problem${bad===1?'':'s'}</div>`
+    : warn ? `<div class="verdict warn">CHECK ${warn} THING${warn===1?'':'S'} FIRST</div>`
+           : `<div class="verdict ok">PASSED — READY TO CUT</div>`;
+  $('msgs').innerHTML = W.length
+    ? W.map(w=>`<div class="msg ${w.level}"><div class="t">${w.t}</div><div class="d">${w.d}</div></div>`).join('')
+    : `<div class="msg ok"><div class="t">No issues found</div>
+       <div class="d">Cut lines closed, nothing doubled up, fits the bed, no live text.</div></div>`;
+}
+
+function setHud(box,used){
+  $('hud').innerHTML = box
+    ? `<span>ART <b>${round(box.w)} × ${round(box.h)}</b> mm</span>
+       <span>AT <b>${round(box.x)}, ${round(box.y)}</b></span>
+       <span>BED <b>${S.bed.w} × ${S.bed.h}</b> mm</span>
+       <span><b>${used.cut}</b> cut · <b>${used.score}</b> score · <b>${used.engrave}</b> engrave</span>`
+    : '';
+}
+
+function renderCanvas(){
+  const host = $('stagewrap');
+  const art = artBoxMm(), pos = placeMm(art);
+
+  // The visible area has to cover the bed *and* anything hanging off it. A
+  // bed-sized viewBox silently clips an oversized design at the edge of the SVG,
+  // which looks exactly like the bottom half of the artwork going missing.
+  let x1=0, y1=0, x2=S.bed.w, y2=S.bed.h;
+  if(art){
+    x1=Math.min(x1,pos.x); y1=Math.min(y1,pos.y);
+    x2=Math.max(x2,pos.x+art.w); y2=Math.max(y2,pos.y+art.h);
+  }
+  const pad = Math.max(x2-x1, y2-y1)*0.06;
+  const fit = { x:x1-pad, y:y1-pad, w:(x2-x1)+pad*2, h:(y2-y1)+pad*2 };
+  S.fitBox = fit;
+
+  // Zoom is a multiple of "everything in view", pan is the centre point. Keeping
+  // the fit box as the reference means a new bed or a bigger design re-frames
+  // sensibly instead of leaving the student lost at 1200% somewhere off-page.
+  if(!S.view) S.view = { cx:fit.x+fit.w/2, cy:fit.y+fit.h/2, zoom:1 };
+  const z = S.view.zoom;
+  const vb = { w:fit.w/z, h:fit.h/z, x:0, y:0 };
+  vb.x = S.view.cx - vb.w/2;
+  vb.y = S.view.cy - vb.h/2;
+
+  // Screen pixels per mm, so hairlines and handles stay a constant size on screen
+  // no matter how far the view has had to zoom out.
+  const cs = getComputedStyle(host);
+  const availW = host.clientWidth  - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const availH = host.clientHeight - parseFloat(cs.paddingTop)  - parseFloat(cs.paddingBottom);
+  S.ppm = Math.min(availW/vb.w, availH/vb.h) || 3;
+  const px = n => n/S.ppm;                      // screen px -> mm at this zoom
+
+  const { svg, used } = buildOutput(true);
+  S.used = used;
+  host.querySelectorAll('svg').forEach(n=>n.remove());
+
+  const view = el('svg',{
+    id:'view', viewBox:`${vb.x} ${vb.y} ${vb.w} ${vb.h}`,
+    preserveAspectRatio:'xMidYMid meet'
+  });
+  view.style.width='100%'; view.style.height='100%';
+
+  if(S.grid){
+    // Two flat sibling patterns. A pattern that fills itself from another
+    // pattern renders pathologically slowly at this scale.
+    const defs = el('defs');
+    const minor = el('pattern',{ id:'g10', width:10, height:10, patternUnits:'userSpaceOnUse' });
+    minor.appendChild(el('path',{ d:'M10 0H0V10', fill:'none',
+      stroke:'rgba(255,255,255,.05)', 'stroke-width':px(.5) }));
+    const major = el('pattern',{ id:'g50', width:50, height:50, patternUnits:'userSpaceOnUse' });
+    major.appendChild(el('path',{ d:'M50 0H0V50', fill:'none',
+      stroke:'rgba(248,72,94,.16)', 'stroke-width':px(.8) }));
+    defs.appendChild(minor); defs.appendChild(major);
+    view.appendChild(defs);
+    view.appendChild(el('rect',{ width:S.bed.w, height:S.bed.h, fill:'url(#g10)' }));
+    view.appendChild(el('rect',{ width:S.bed.w, height:S.bed.h, fill:'url(#g50)' }));
+  }
+  if(S.rule){
+    view.appendChild(el('rect',{ width:S.bed.w, height:S.bed.h, fill:'none',
+      stroke:'#41495c', 'stroke-width':px(1.2), 'stroke-dasharray':px(6)+' '+px(4.5) }));
+    view.appendChild(el('circle',{ cx:0, cy:0, r:px(3), fill:'#f8485e' }));
+  }
+
+  const g = el('g',{ id:'artg' });
+  while(svg.firstChild) g.appendChild(svg.firstChild);
+  view.appendChild(g);
+
+  const fr = el('text',{ x:px(2), y:S.bed.h+px(14), fill:'#4b5469',
+    'font-size':px(11), 'letter-spacing':px(1.5) });
+  fr.textContent='front';
+  view.appendChild(fr);
+
+  const handles = art ? makeHandles(view, px) : null;
+  if(handles) handles.place({ x:pos.x, y:pos.y, w:art.w, h:art.h });
+
+  host.appendChild(view);
+  bindStage(view, g, handles, art ? { x:pos.x, y:pos.y, w:art.w, h:art.h } : null);
+
+  $('zFit').querySelector('b').textContent = Math.round(S.view.zoom*100)+'%';
+  setHud(art ? { x:pos.x, y:pos.y, w:art.w, h:art.h } : null, used);
+}
+
+/* ===================== zoom & pan ===================== */
+const ZMIN = 0.25, ZMAX = 40;
+// Re-rendering rebuilds the output SVG, which is slow on a big traced file. The
+// viewBox is nudged immediately for a responsive feel and the full redraw (which
+// resizes hairlines and handles to suit the new zoom) trails behind it.
+let zoomTimer = null;
+function applyView(){
+  const v = $('view'), fit = S.fitBox;
+  if(!v || !fit) return;
+  const w = fit.w/S.view.zoom, h = fit.h/S.view.zoom;
+  v.setAttribute('viewBox', `${S.view.cx-w/2} ${S.view.cy-h/2} ${w} ${h}`);
+  $('zFit').querySelector('b').textContent = Math.round(S.view.zoom*100)+'%';
+  clearTimeout(zoomTimer);
+  zoomTimer = setTimeout(()=>{ if(!drag) renderCanvas(); }, 140);
+}
+function zoomAbout(factor, anchorMm){
+  if(!S.view || !S.fitBox) return;
+  const z0 = S.view.zoom;
+  const z1 = Math.min(ZMAX, Math.max(ZMIN, z0*factor));
+  if(z1===z0) return;
+  if(anchorMm){
+    // Keep whatever is under the pointer exactly where it is.
+    const k = 1 - z0/z1;
+    S.view.cx += (anchorMm.x - S.view.cx)*k;
+    S.view.cy += (anchorMm.y - S.view.cy)*k;
+  }
+  S.view.zoom = z1;
+  applyView();
+}
+const resetView = () => { S.view = null; renderCanvas(); };
+
+/* ============ direct manipulation: drag to move, corners to resize ============ */
+const CORNERS = [ ['tl',0,0,'nwse-resize'], ['tr',1,0,'nesw-resize'],
+                  ['bl',0,1,'nesw-resize'], ['br',1,1,'nwse-resize'] ];
+
+function makeHandles(view, px){
+  const g = el('g',{ id:'handles' });
+  // fill:transparent (not none) so the whole box is grabbable, including gaps in the art
+  const box = el('rect',{ fill:'transparent', stroke:'rgba(248,72,94,.55)',
+    'stroke-width':px(1), 'stroke-dasharray':px(5)+' '+px(4),
+    'data-move':'1', style:'cursor:move' });
+  g.appendChild(box);
+  const knobs = CORNERS.map(([k,,,cur]) => {
+    const r = el('rect',{ rx:px(2), fill:'#f8485e',
+      stroke:'#0b0d13', 'stroke-width':px(1), 'data-handle':k, style:'cursor:'+cur });
+    g.appendChild(r); return r;
+  });
+  view.appendChild(g);
+  return {
+    g,
+    place(b){
+      box.setAttribute('x',b.x); box.setAttribute('y',b.y);
+      box.setAttribute('width',Math.max(0,b.w)); box.setAttribute('height',Math.max(0,b.h));
+      // 10 screen px, but never more than a third of the box — on a small design
+      // full-size knobs cover the artwork they are supposed to be resizing.
+      const hs = Math.max(px(4), Math.min(px(10), Math.min(b.w,b.h)/3));
+      CORNERS.forEach(([,cx,cy],i)=>{
+        knobs[i].setAttribute('width',hs); knobs[i].setAttribute('height',hs);
+        knobs[i].setAttribute('x', b.x+cx*b.w-hs/2);
+        knobs[i].setAttribute('y', b.y+cy*b.h-hs/2);
+      });
+    }
+  };
+}
+
+let drag = null;
+function bindStage(view, artg, handles, box0){
+  const toMm = e => {
+    const m = view.getScreenCTM(); if(!m) return { x:0, y:0 };
+    const p = view.createSVGPoint(); p.x=e.clientX; p.y=e.clientY;
+    return p.matrixTransform(m.inverse());
+  };
+  const snap = (v,e) => e.shiftKey ? Math.round(v/5)*5 : Math.round(v*10)/10;
+
+  view.addEventListener('wheel', e=>{
+    e.preventDefault();
+    // Trackpads send small deltas constantly; the exponent keeps both a mouse
+    // notch and a two-finger swipe feeling proportionate.
+    zoomAbout(Math.pow(0.9988, e.deltaY), toMm(e));
+  }, { passive:false });
+
+  view.addEventListener('pointerdown', e=>{
+    const t = e.target;
+    const corner = box0 && t.getAttribute && t.getAttribute('data-handle');
+    const move   = box0 && t.getAttribute && t.getAttribute('data-move');
+    // Anything that is not the artwork pans the view — the usual design-tool deal.
+    const pan = !corner && !move;
+    if(pan && e.button!==0 && e.button!==1) return;
+    e.preventDefault();
+    // Capture is a nicety — losing it must not abort the gesture.
+    try{ view.setPointerCapture(e.pointerId); }catch(err){}
+    view.classList.add('dragging');
+    drag = { mode: corner?'scale':move?'move':'pan', corner, p0:toMm(e), box:box0,
+             pos:{...S.pos}, mmW:S.mmW, mmH:S.mmH, moved:false,
+             c0:{ x:e.clientX, y:e.clientY },
+             view0:{...S.view}, mmPerPx:(S.fitBox.w/S.view.zoom)/view.getBoundingClientRect().width };
+  });
+
+  // Live dragging only rewrites two transforms. Rebuilding the whole output SVG on
+  // every pointermove stutters badly on a busy Canva file.
+  view.addEventListener('pointermove', e=>{
+    if(!drag) return;
+    drag.moved = true;
+
+    if(drag.mode==='pan'){
+      // Measured in client pixels against the scale captured at pointerdown —
+      // reading the live CTM here would chase its own tail as the viewBox moves.
+      S.view.cx = drag.view0.cx - (e.clientX-drag.c0.x)*drag.mmPerPx;
+      S.view.cy = drag.view0.cy - (e.clientY-drag.c0.y)*drag.mmPerPx;
+      applyView();
+      return;
+    }
+    const p = toMm(e);
+
+    if(drag.mode==='move'){
+      const want = clampPos({ x:snap(drag.pos.x + (p.x-drag.p0.x), e),
+                              y:snap(drag.pos.y + (p.y-drag.p0.y), e) }, drag.box);
+      S.pos.x = want.x; S.pos.y = want.y;
+      const tx = S.pos.x-drag.box.x, ty = S.pos.y-drag.box.y;
+      artg.setAttribute('transform',`translate(${tx} ${ty})`);
+      handles.place({ x:S.pos.x, y:S.pos.y, w:drag.box.w, h:drag.box.h });
+      syncPos();
+      setHud({ x:S.pos.x, y:S.pos.y, w:drag.box.w, h:drag.box.h }, S.used);
+      return;
+    }
+
+    // Resize: the corner you grabbed follows the pointer, the opposite corner
+    // stays nailed down.
+    const b = drag.box;
+    const [,cx,cy] = CORNERS.find(c=>c[0]===drag.corner);
+    const A = { x:b.x + (1-cx)*b.w, y:b.y + (1-cy)*b.h };     // anchor
+    const v0 = { x:(cx?b.w:-b.w), y:(cy?b.h:-b.h) };          // anchor -> grabbed corner
+    const v  = { x:p.x-A.x, y:p.y-A.y };
+    let kx, ky;
+    if($('lock').checked){
+      // Project onto the diagonal: steadier than tracking either axis alone.
+      kx = ky = (v.x*v0.x + v.y*v0.y) / (v0.x*v0.x + v0.y*v0.y);
+    } else {
+      kx = v.x/v0.x; ky = v.y/v0.y;
+    }
+    kx = Math.min(Math.max(kx, 1/Math.max(b.w,1)), 50);       // never below ~1 mm
+    ky = Math.min(Math.max(ky, 1/Math.max(b.h,1)), 50);
+
+    // The grabbed box may include the generated cut outline, and that gap is a
+    // fixed number of millimetres — only the artwork inside it actually scales.
+    const m = olPad();
+    const kRawX = m ? (b.w*kx - 2*m)/Math.max(0.01, b.w - 2*m) : kx;
+    const kRawY = m ? (b.h*ky - 2*m)/Math.max(0.01, b.h - 2*m) : ky;
+    S.mmW = Math.round(drag.mmW*Math.max(kRawX,0.001)*10)/10;
+    S.mmH = Math.round(drag.mmH*Math.max(kRawY,0.001)*10)/10;
+    const nb = { w:b.w*kx, h:b.h*ky };
+    nb.x = A.x - (1-cx)*nb.w;
+    nb.y = A.y - (1-cy)*nb.h;
+    S.pos.x = nb.x; S.pos.y = nb.y;
+
+    artg.setAttribute('transform',
+      `translate(${A.x} ${A.y}) scale(${kx} ${ky}) translate(${-A.x} ${-A.y})`);
+    handles.place(nb);
+    syncPos(); syncSize();
+    setHud(nb, S.used);
+  });
+
+  const end = e => {
+    if(!drag) return;
+    const was = drag;
+    drag = null;
+    view.classList.remove('dragging');
+    try{ view.releasePointerCapture(e.pointerId); }catch(err){}
+    if(!was.moved) return;
+    // One clean rebuild at the end of the gesture. A pan changed nothing about
+    // the job itself, so it only needs the canvas redrawn, not a fresh pre-flight.
+    if(was.mode==='pan') renderCanvas(); else refresh();
+  };
+  view.addEventListener('pointerup', end);
+  view.addEventListener('pointercancel', end);
+}
+
+/* ================= export ================= */
+function download(){
+  const bad = S.warnings.filter(w=>w.level==='bad');
+  if(bad.length && !confirm('This design still has '+bad.length+' problem'+(bad.length===1?'':'s')
+      +' that will spoil the job:\n\n• '+bad.map(b=>b.t).join('\n• ')+'\n\nDownload anyway?')) return;
+
+  const { svg, pageW, pageH } = buildOutput(false);
+  svg.insertBefore(document.createComment(
+` Laser Prep — job ${S.jobCode}
+  Page ${round(pageW)} x ${round(pageH)} mm — material: ${S.material||''}
+  Universal pen colours: CUT ${OPS.cut.pen} (Red) | SCORE ${OPS.score.pen} (Blue) | ENGRAVE ${OPS.engrave.pen} (Black)
+  Vector strokes are hairline (${HAIRLINE_MM} mm). Do NOT rescale on import —
+  set the driver page size to ${round(pageW)} x ${round(pageH)} mm. `), svg.firstChild);
+
+  const blob = new Blob(['<?xml version="1.0" encoding="UTF-8"?>\n'
+    + new XMLSerializer().serializeToString(svg)], { type:'image/svg+xml' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${S.name}-LASER-${round(pageW)}x${round(pageH)}mm.svg`;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+}
+
+function printSheet(){
+  const { used, art, pos, pageW, pageH } = buildOutput(false);
+  const bad = S.warnings.filter(w=>w.level==='bad');
+  const rows = ['cut','score','engrave'].filter(op=>used[op]>0).map(op=>
+    `<tr><td><strong>${OPS[op].label}</strong></td><td>${OPS[op].pname} ${OPS[op].pen}</td>
+     <td>${used[op]}</td><td></td><td></td><td></td></tr>`).join('');
+
+  $('sheet').innerHTML = `
+    <h1>Laser job sheet</h1>
+    <div class="meta">${S.name} &middot; ${S.trace.on?'traced from a picture':'vector file'}
+      &middot; Universal Laser Systems &middot; prepared ${new Date().toLocaleString('en-AU')}</div>
+    <div class="box">
+      <div>Job code <span class="code">${S.jobCode}</span></div>
+      <div style="margin-top:6pt">Pre-flight: <strong>${
+        bad.length ? 'FAILED — do not run until fixed'
+        : S.warnings.length ? 'PASSED WITH NOTES — read the notes below first'
+        : 'PASSED — no issues found'}</strong></div>
+    </div>
+    <table>
+      <tr><th>Material</th><td>${S.material||'________________'}</td>
+          <th>Artwork size</th><td>${art?round(art.w)+' × '+round(art.h)+' mm':'—'}</td></tr>
+      <tr><th>Page / driver size</th><td>${round(pageW)} × ${round(pageH)} mm</td>
+          <th>Position on bed</th><td>${
+            S.pageMode==='art' ? 'set this in the laser software'
+            : art ? round(pos.x)+', '+round(pos.y)+' mm from top-left' : '—'}</td></tr>
+    </table>
+    <table>
+      <tr><th>Operation</th><th>Pen colour</th><th>Shapes</th><th>Power %</th><th>Speed %</th><th>PPI</th></tr>
+      ${rows}
+    </table>
+    ${S.outline.on?`<div class="box">A cut outline was added by this tool: a closed rectangle
+      ${round(S.outline.pad)} mm clear of the artwork${S.outline.r?`, ${round(S.outline.r)} mm rounded corners`:''}.
+      It is counted in the cut total above.</div>`:''}
+    <div class="box">
+      <strong>In the Universal driver:</strong> set the page size to
+      ${round(pageW)} × ${round(pageH)} mm and import at 100% — do not "fit to page", or the
+      whole job comes out the wrong size. Set power and speed per pen colour above.
+      Run engraving first, then scoring, then cutting last, so the piece does not come
+      loose and shift mid-job.
+    </div>
+    ${S.warnings.length?`<div><strong>Checked by computer — ${S.warnings.length} note${S.warnings.length===1?'':'s'}:</strong>
+      <ul>${S.warnings.map(w=>`<li><strong>${w.t}.</strong> ${w.d}</li>`).join('')}</ul></div>`:''}
+    <div class="box">
+      Before starting: material flat and held down &middot; focus set &middot; extraction running &middot;
+      lid closed &middot; <strong>someone stays with the machine until the job finishes</strong>.
+      <div style="margin-top:14pt">Supervising staff signature: ____________________________ &nbsp; Date: __________</div>
+    </div>`;
+  window.print();
+}
+
+/* ================= wiring ================= */
+(function initMachines(){
+  const sel = $('machine');
+  MACHINES.forEach(m=>{
+    const o = document.createElement('option');
+    o.value=m.id; o.textContent=m.name; sel.appendChild(o);
+  });
+  sel.value='custom';
+  sel.onchange = () => {
+    const m = MACHINES.find(x=>x.id===sel.value);
+    if(!m) return;
+    $('bw').value=m.w; $('bh').value=m.h;
+    refresh();
+  };
+})();
+
+(function initPad(){
+  const pad = $('pad');
+  ['top','middle','bottom'].forEach(v=>['left','centre','right'].forEach(h=>{
+    const b=document.createElement('button');
+    b.dataset.al = v+'-'+h;
+    b.setAttribute('aria-pressed', S.align===b.dataset.al);
+    b.title = v+' '+h;
+    // The pad is now a shortcut that writes a position, not a mode.
+    b.onclick = ()=>{
+      S.align = b.dataset.al;
+      syncPad();
+      const art = artBoxMm();
+      if(art){ S.pos = alignPos(art); syncPos(); }
+      refresh();
+    };
+    pad.appendChild(b);
+  }));
+})();
+
+$('pageMode').querySelectorAll('button').forEach(b=>{
+  b.onclick = ()=>{ S.pageMode=b.dataset.mode;
+    $('pageMode').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', x===b));
+    refresh(); };
+});
+$('layerToggles').querySelectorAll('button').forEach(b=>{
+  b.onclick = ()=>{ const k=b.dataset.layer; S.show[k]=!S.show[k];
+    b.setAttribute('aria-pressed',S.show[k]); renderCanvas(); };
+});
+$('zIn').onclick  = ()=>zoomAbout(1.3);
+$('zOut').onclick = ()=>zoomAbout(1/1.3);
+$('zFit').onclick = resetView;
+document.addEventListener('keydown', e=>{
+  if(/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName)) return;
+  if(e.key==='+'||e.key==='=') { zoomAbout(1.3); return; }
+  if(e.key==='-'||e.key==='_') { zoomAbout(1/1.3); return; }
+  if(e.key==='0') { resetView(); return; }
+  if(!S.loaded || !/^Arrow/.test(e.key)) return;
+  const art = artBoxMm(); if(!art) return;
+  const step = e.shiftKey ? 5 : 1;
+  const d = { ArrowLeft:[-step,0], ArrowRight:[step,0], ArrowUp:[0,-step], ArrowDown:[0,step] }[e.key];
+  if(!d) return;
+  e.preventDefault();
+  S.pos = clampPos({ x:S.pos.x+d[0], y:S.pos.y+d[1] }, art);
+  syncPos(); refresh();
+});
+
+$('tGrid').onclick = e => { S.grid=!S.grid; e.currentTarget.setAttribute('aria-pressed',S.grid); renderCanvas(); };
+$('tRule').onclick = e => { S.rule=!S.rule; e.currentTarget.setAttribute('aria-pressed',S.rule); renderCanvas(); };
+
+const drop = $('drop');
+function bindDrop(node){
+  if(!node) return;
+  node.onclick = ()=>$('file').click();
+  node.ondragover = e=>{ e.preventDefault(); node.classList.add('over'); };
+  node.ondragleave = ()=>node.classList.remove('over');
+  node.ondrop = e=>{ e.preventDefault(); node.classList.remove('over');
+    const f=e.dataTransfer.files[0]; if(f) readFile(f); };
+}
+bindDrop(drop);
+document.addEventListener('dragover', e=>e.preventDefault());
+document.addEventListener('drop', e=>{
+  e.preventDefault();
+  const f = e.dataTransfer && e.dataTransfer.files[0];
+  if(f) readFile(f);
+});
+$('file').onchange = e => { const f=e.target.files[0]; if(f) readFile(f); e.target.value=''; };
+
+const RASTER = /\.(png|jpe?g|gif|bmp|webp|avif)$/i;
+function readFile(f,asName){
+  const r = new FileReader();
+  const name = asName || f.name || 'design';
+  const raster = RASTER.test(name)
+    || (f.type && /^image\//.test(f.type) && f.type !== 'image/svg+xml');
+  r.onerror = () => alert('That file could not be opened. Try copying it somewhere local first.');
+  if(raster){
+    r.onload = () => readImage(r.result, name);
+    r.readAsDataURL(f);
+  } else {
+    r.onload = () => load(r.result, name);     // load() clears the traced flag
+    r.readAsText(f);
+  }
+}
+
+// Paste, so a design never has to become a file first: copy a picture out of
+// Canva, a browser, Snipping Tool or Photos and press Ctrl-V straight in here.
+document.addEventListener('paste', e => {
+  const t = e.target;
+  // Don't steal paste from the size/material fields the student is typing into.
+  if(t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.nodeName)) return;
+  const cd = e.clipboardData;
+  if(!cd) return;
+
+  for(const it of cd.items||[]){
+    if(it.kind!=='file') continue;
+    const f = it.getAsFile();
+    if(f && /^image\//.test(f.type)){
+      // Clipboard images are all called "image.png", which makes a useless job name.
+      e.preventDefault();
+      readFile(f, 'pasted-'+new Date().toTimeString().slice(0,5).replace(':','')+'.png');
+      return;
+    }
+  }
+  // Markup on the clipboard: an SVG copied out of a code editor or a web page.
+  const txt = cd.getData('text/plain') || '';
+  if(/^\s*(<\?xml|<svg)/i.test(txt)){
+    e.preventDefault();
+    load(txt,'pasted.svg');
+  }
+});
+
+$('thr').oninput = () => { S.trace.t = Math.round(+$('thr').value/100*255); queueTrace(); };
+$('sm').oninput  = () => { S.trace.sm = +$('sm').value|0; queueTrace(); };
+$('sp').oninput  = () => { S.trace.sp = +$('sp').value|0; queueTrace(); };
+$('trInv').onchange = () => { S.trace.invert = $('trInv').checked; queueTrace(); };
+
+$('w').oninput = () => {
+  const v=+$('w').value; if(!(v>0)) return;
+  if($('lock').checked){ S.mmH = v*(S.vbH/S.vbW); $('h').value=round(S.mmH); }
+  S.mmW=v; refresh();
+};
+$('h').oninput = () => {
+  const v=+$('h').value; if(!(v>0)) return;
+  if($('lock').checked){ S.mmW = v*(S.vbW/S.vbH); $('w').value=round(S.mmW); }
+  S.mmH=v; refresh();
+};
+// Shrink-to-fit, then centre. The margin is baked into the target rather than
+// applied as a multiplier each press — otherwise every press took another 2% off
+// a design that already fitted.
+$('fit').onclick = () => {
+  const art = artBoxMm(); if(!art || !(art.w>0) || !(art.h>0)) return;
+  const k = Math.min(S.bed.w*0.98/art.w, S.bed.h*0.98/art.h);
+  if(k < 0.999){                        // only ever shrinks, and only if it must
+    S.mmW = round(S.mmW*k); S.mmH = round(S.mmH*k);
+    syncSize();
+  }
+  const a = artBoxMm();
+  S.align = 'middle-centre'; syncPad();
+  S.pos = alignPos(a); syncPos();
+  refresh();
+};
+// Rotate by swapping the page box and rotating content inside it.
+$('rot').onclick = () => {
+  const vbW=S.vbW, vbH=S.vbH;
+  const wrapper = el('g',{ transform:`rotate(90) translate(0 ${-vbH})` });
+  while(S.svg.firstChild) wrapper.appendChild(S.svg.firstChild);
+  S.svg.appendChild(wrapper);
+  S.svg.setAttribute('viewBox', `${S.vbY} ${S.vbX} ${vbH} ${vbW}`);
+  S.vbW=vbH; S.vbH=vbW;
+  const t=S.mmW; S.mmW=S.mmH; S.mmH=t;
+  syncSize();
+  harvest(); buildColourRows();
+  const a = artBoxMm();
+  if(a){ S.pos = clampPos(S.pos, a); syncPos(); }
+  refresh();
+};
+// Merging regroups the harvested colours; it never re-reads the file, so it is
+// cheap enough to run live on the slider even with thousands of shapes.
+$('tol').oninput = () => {
+  S.tol = +$('tol').value||0;
+  $('tolVal').textContent = S.tol ? 'within '+S.tol : 'off';
+  if(!S.loaded) return;
+  regroup(); buildColourRows(); refresh();
+};
+document.querySelectorAll('.setall button').forEach(b=>{
+  b.onclick = ()=>{
+    const op = b.dataset.all;
+    for(const g of S.groups.values()){
+      // A photo can only be engraved or left out, never cut.
+      const use = (g.hex==='IMAGE' && (op==='cut'||op==='score')) ? 'engrave' : op;
+      g.op = use; S.opChoice[g.hex] = use;
+    }
+    buildColourRows(); refresh();
+  };
+});
+
+$('olOn').onchange = ()=>{ S.outline.on = $('olOn').checked; refresh(); };
+['olPad','olR'].forEach(id=>$(id).oninput = ()=>{
+  S.outline.pad = Math.max(0, +$('olPad').value||0);
+  S.outline.r   = Math.max(0, +$('olR').value||0);
+  refresh();
+});
+
+['bw','bh'].forEach(id=>$(id).oninput = ()=>{ $('machine').value='custom'; refresh(); });
+$('mat').oninput = refresh;
+['px','py'].forEach(id=>$(id).oninput = refresh);
+$('dl').onclick = download;
+$('print').onclick = printSheet;
+$('reset').onclick = ()=>location.reload();
+</script>
+</body>
+</html>

@@ -125,6 +125,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .sw{width:20px;height:20px;border-radius:5px;border:1px solid #434a5d;flex:none}
 .chead code{font-size:11.5px;letter-spacing:.02em}
 .chead em{font-style:normal;margin-left:auto;font-size:10.5px;color:var(--dim)}
+/* Second-pass option. A fifth card would not fit the sidebar, and this is not a
+   fifth choice anyway -- it modifies Cut. */
+.also{display:flex;align-items:center;gap:6px;margin-top:7px;font-size:11px;
+  color:var(--dim);cursor:pointer;user-select:none}
+.also input{width:auto;margin:0;flex:none;accent-color:var(--acc)}
+.also:hover{color:var(--ink)}
 
 /* messages */
 .msg{border:1px solid var(--line);border-left:2px solid var(--dim2);border-radius:6px;
@@ -173,11 +179,17 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .filechip svg{width:14px;height:14px;color:var(--acc);flex:none}
 .filechip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-.sheet{display:none}
+.sheet,.plate{display:none}
 @media print{
   body{overflow:visible;background:#fff;color:#000;height:auto}
   .top,.app{display:none !important}
   .sheet{display:block !important;font:11pt/1.45 Georgia,serif;padding:0}
+  /* Printing straight to the laser driver instead of the job sheet. The page is
+     the bed, the margin is zero, and nothing else may be on the paper — any stray
+     pixel changes what the driver thinks the drawing is. */
+  body.toLaser .sheet{display:none !important}
+  body.toLaser .plate{display:block !important;margin:0;padding:0;line-height:0}
+  body.toLaser .plate svg{display:block}
   .sheet h1{font-size:19pt;margin:0 0 2pt}
   .sheet .meta{color:#444;margin-bottom:12pt;font-size:10pt}
   .sheet table{width:100%;border-collapse:collapse;margin-bottom:12pt}
@@ -217,7 +229,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     <div class="scroll">
       <div class="intro">
         <h1>Artwork → Universal laser</h1>
-        <p>Drop in <b>any picture</b> &mdash; PNG, JPG, a screenshot, a photo of a drawing &mdash; and it gets traced into cut lines. Already have a vector file? Drop the <b>SVG</b> instead and it skips tracing. Either way: set the real size, say what each colour should do, download a file the laser will accept. Runs entirely in your browser.</p>
+        <p>Drop in <b>any picture</b> &mdash; PNG, JPG, a screenshot, a photo of a drawing &mdash; and it gets traced into cut lines. Already have a vector file? Drop the <b>SVG</b> instead and it skips tracing. Either way: set the real size, say what each colour should do, then <b>send it straight to the laser</b> &mdash; no Illustrator in between. Runs entirely in your browser.</p>
       </div>
 
       <div class="sec">
@@ -259,8 +271,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         <select id="machine"></select>
         <label class="lbl" style="margin-top:10px">Bed size</label>
         <div class="grid2">
-          <div class="fieldwrap"><input type="number" id="bw" min="10" step="1" value="600"><u>W mm</u></div>
-          <div class="fieldwrap"><input type="number" id="bh" min="10" step="1" value="400"><u>H mm</u></div>
+          <div class="fieldwrap"><input type="number" id="bw" min="10" step="1" value="610"><u>W mm</u></div>
+          <div class="fieldwrap"><input type="number" id="bh" min="10" step="1" value="457"><u>H mm</u></div>
         </div>
         <label class="lbl" style="margin-top:10px">Material</label>
         <input type="text" id="mat" value="3mm plywood" placeholder="e.g. 3mm plywood">
@@ -323,6 +335,22 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
           traced artwork with no clean outline of its own — it is guaranteed to close, so the piece drops out.</p>
       </div>
 
+      <div class="sec" id="secCal" hidden>
+        <h2>Size check</h2>
+        <label style="display:flex;gap:7px;align-items:center;font-size:12px;cursor:pointer">
+          <input type="checkbox" id="calOn" style="width:auto;padding:0"> Add a 100 mm check square
+        </label>
+        <p class="sub">Adds a plain 100 mm square in cut red to the corner of the sheet. Cut it on scrap once.</p>
+        <label class="lbl" style="margin-top:11px">It actually measured</label>
+        <div class="fieldwrap"><input type="number" id="calMeas" min="50" max="200" step="0.1" value="100"><u>mm</u></div>
+        <p class="sub" id="calNote">Leave at 100 until you have measured one.</p>
+        <p class="sub">Measure the cut square edge to edge and type what you got. Everything exported after
+          that is stretched to compensate, so the millimetres on screen are the millimetres on the material.
+          A few percent out is normal and almost always a <b style="color:var(--ink)">“fit to page”</b> or
+          <b style="color:var(--ink)">“scale to fit”</b> setting somewhere between here and the laser —
+          worth hunting down, but this corrects for it either way.</p>
+      </div>
+
       <div class="sec" id="secColours" hidden>
         <h2>Colours <b id="cCount"></b></h2>
         <div id="mergeRow">
@@ -341,7 +369,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
           </div>
         </div>
         <div id="colours"></div>
-        <p class="sub">Outline colour wins over fill. <b style="color:var(--ink)">Cut</b> goes through, <b style="color:var(--ink)">Score</b> marks the surface, <b style="color:var(--ink)">Engrave</b> burns the shaded area away.</p>
+        <p class="sub">Outline colour wins over fill. <b style="color:var(--ink)">Cut</b> goes through, <b style="color:var(--ink)">Score</b> marks the surface, <b style="color:var(--ink)">Engrave</b> burns the shaded area away. Need both on one shape — burn the inside, then cut it out? Choose Cut and tick <b style="color:var(--ink)">Also engrave the inside</b>.</p>
         <div id="bgRow"></div>
       </div>
 
@@ -353,9 +381,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     </div>
 
     <div class="foot">
-      <button class="btn acc" id="dl" disabled>
+      <button class="btn acc" id="toLaser" disabled>
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4.5 6V2.5h7V6M4 11.5h8v2H4z"/><path d="M3 6h10a1.5 1.5 0 0 1 1.5 1.5v3H1.5v-3A1.5 1.5 0 0 1 3 6Z"/></svg>
+        Send to the laser</button>
+      <button class="btn" id="dl" disabled>
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 2v8m0 0 3-3m-3 3L5 7M2.5 12.5h11"/></svg>
-        Download laser file</button>
+        Download SVG instead</button>
       <button class="btn" id="print" disabled>Print job sheet</button>
     </div>
   </aside>
@@ -379,6 +410,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 </div>
 
 <div class="sheet" id="sheet"></div>
+<div class="plate" id="plate"></div>
+<style id="pageRule"></style>
 <div id="stage" style="position:fixed;left:-30000px;top:0;width:10px;height:10px;overflow:hidden"></div>
 
 <script>
@@ -386,6 +419,13 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 const NS = 'http://www.w3.org/2000/svg';
 const PX_PER_MM = 96/25.4;
 const HAIRLINE_MM = 0.01;          // Universal wants <= 0.025mm (0.001") for vector
+const CAL_MM = 100;                // side of the size-check square
+// 100 mm asked for, S.cal.meas delivered, so send everything this much bigger.
+// Clamped hard: a typo like 10 or 1000 would otherwise destroy a sheet of material.
+const calFactor = () => {
+  const m = +S.cal.meas;
+  return (m >= 50 && m <= 200 && Math.abs(m-100) > 0.05) ? 100/m : 1;
+};
 const DRAWABLE = 'path,rect,circle,ellipse,line,polyline,polygon,text,image,use';
 const NON_RENDER = new Set(['defs','clippath','mask','marker','pattern','symbol']);
 
@@ -394,8 +434,18 @@ const OPS = {
   cut:     { label:'CUT',     pen:'#FF0000', pname:'Red',   pv:'#ff4d5e' },
   score:   { label:'SCORE',   pen:'#0000FF', pname:'Blue',  pv:'#4b8cff' },
   engrave: { label:'ENGRAVE', pen:'#000000', pname:'Black', pv:'#c9cfdd' },
-  ignore:  { label:'SKIP',    pen:null,      pname:'—',     pv:null }
+  ignore:  { label:'SKIP',    pen:null,      pname:'—',     pv:null },
+  // Two passes on the same geometry: the inside is engraved black, then the same
+  // outline is cut in red. The laser does both in one job because the driver sorts
+  // by pen colour (raster black first, vector red last), which is also the only
+  // safe order -- cut the part free first and it shifts before it is engraved.
+  engcut:  { label:'CUT',     pen:null,      pname:'Black + Red', pv:null }
 };
+// An operation that is really a list of operations. Everything downstream asks for
+// the parts rather than testing the op name, so adding another combo stays a
+// one-line change here.
+const OP_PARTS = { engcut:['engrave','cut'] };
+const partsOf = op => OP_PARTS[op] || [op];
 const OP_ICON = {
   cut:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3.5" y="3.5" width="13" height="13" rx="2"/></svg>',
   score:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-dasharray="3 2.2"><path d="M3 10h14"/></svg>',
@@ -405,10 +455,10 @@ const OP_ICON = {
 
 // Approximate ULS bed sizes — confirm against the plate on your own machine.
 const MACHINES = [
-  { id:'custom',  name:'Custom / measured',        w:600,  h:400 },
+  { id:'vls460',  name:'VLS4.60  610 × 457',       w:610,  h:457 },
+  { id:'custom',  name:'Custom / measured',        w:610,  h:457 },
   { id:'vls230',  name:'VLS2.30  ~406 × 305',      w:406,  h:305 },
   { id:'vls350',  name:'VLS3.50  ~610 × 305',      w:610,  h:305 },
-  { id:'vls460',  name:'VLS4.60  ~610 × 457',      w:610,  h:457 },
   { id:'vls660',  name:'VLS6.60  ~813 × 457',      w:813,  h:457 },
   { id:'pls675',  name:'PLS6.75  ~813 × 457',      w:813,  h:457 },
   { id:'ils1275', name:'ILS12.75 ~1219 × 610',     w:1219, h:610 }
@@ -418,7 +468,7 @@ const S = {
   name:'design', svg:null, loaded:false,
   vbX:0, vbY:0, vbW:0, vbH:0, mmW:0, mmH:0,
   items:[], groups:new Map(), hasBg:0, removeBg:true,
-  bed:{ w:600, h:400 }, align:'top-left', pageMode:'bed',
+  bed:{ w:610, h:457 }, align:'top-left', pageMode:'bed',   // VLS4.60
   pos:{ x:0, y:0 },                // artwork top-left on the bed, in mm
   ppm:3,                           // screen pixels per mm in the preview
   view:null,                       // {cx,cy,zoom} — null means "fit the bed"
@@ -426,6 +476,9 @@ const S = {
   opChoice:{},                     // colour -> operation the student actually picked
   trace:{ on:false, t:128, sm:6, sp:3, invert:false }, traceCount:0,
   outline:{ on:false, pad:4, r:3 },
+  // Size check. meas is what a cut 100 mm square really measured, so 100/meas is
+  // the factor the exported file has to be stretched by to land on true size.
+  cal:{ on:false, meas:100 },
   show:{ cut:true, score:true, engrave:true }, grid:true, rule:true,
   warnings:[], jobCode:''
 };
@@ -825,8 +878,8 @@ function load(text,name,keep,fromTrace){
     S.align = 'top-left'; S.pos = { x:0, y:0 };
   }
   syncSize(); syncPos(); syncPad();
-  ['secSize','secPlace','secOutline','secColours','secChecks'].forEach(i=>$(i).hidden=false);
-  $('dl').disabled = $('print').disabled = false;
+  ['secSize','secPlace','secOutline','secCal','secColours','secChecks'].forEach(i=>$(i).hidden=false);
+  $('dl').disabled = $('print').disabled = $('toLaser').disabled = false;
   $('empty').hidden = true; $('key').hidden = false;
   if(!prev) $('dropHost').innerHTML = `<div class="filechip">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 1.5H4a1.5 1.5 0 0 0-1.5 1.5v10A1.5 1.5 0 0 0 4 14.5h8a1.5 1.5 0 0 0 1.5-1.5V6z"/><path d="M9 1.5V6h4.5"/></svg>
@@ -983,7 +1036,32 @@ function clampPos(p,art){
            y: Math.min(Math.max(p.y, 10-art.h), S.bed.h-10) };
 }
 const syncPos = () => { $('px').value = round(S.pos.x); $('py').value = round(S.pos.y); };
-const syncSize = () => { $('w').value = round(S.mmW); $('h').value = round(S.mmH); };
+// "Finished size" means the size of the DESIGN, which is what a student measures
+// with a ruler after the cut. It is not the page: an SVG out of TinkerCAD, Canva
+// or Illustrator usually has a page a little larger than the drawing inside it,
+// and reporting the page made the tool claim a 186 mm rectangle was 186 mm when
+// the thing it actually cut was smaller. The outline pad is excluded on purpose
+// -- that is a separate mm setting the student controls directly.
+const sizeBox = () => rawArtBoxMm() || { w:S.mmW, h:S.mmH };
+const syncSize = () => {
+  const a = sizeBox();
+  $('w').value = round(a.w); $('h').value = round(a.h);
+};
+
+// Scale so the DESIGN lands on the typed millimetre. Artwork width is a fixed
+// multiple of page width (both go through sxMm), so one multiply is exact.
+function resizeArtTo(axis,v){
+  const a = sizeBox();
+  const cur = axis==='w' ? a.w : a.h;
+  if(!(cur>0) || !(v>0)) return;
+  const k = v/cur;
+  if($('lock').checked){ S.mmW*=k; S.mmH*=k; }
+  else if(axis==='w') S.mmW*=k;
+  else S.mmH*=k;
+  const b = sizeBox();                       // refresh the partner field only
+  if(axis==='w') $('h').value = round(b.h); else $('w').value = round(b.w);
+  refresh();
+}
 function syncPad(){
   $('pad').querySelectorAll('button').forEach(b=>
     b.setAttribute('aria-pressed', b.dataset.al===S.align));
@@ -1022,13 +1100,27 @@ function isOpen(item){
 
 function preflight(){
   const W=[]; const add=(level,t,d)=>W.push({level,t,d});
-  const byOp = op => { const a=[]; for(const g of S.groups.values()) if(g.op===op) a.push(...g.items); return a; };
+  // Asks for the parts, not the op, so a colour set to cut+engrave counts as cut.
+  const byOp = op => { const a=[]; for(const g of S.groups.values())
+    if(partsOf(g.op).includes(op)) a.push(...g.items); return a; };
   const cuts = byOp('cut'), scores = byOp('score');
   const active = activeItems();
   const sx = sxMm(), sy = syMm();
 
   if(!active.length) add('bad','Nothing will be made','Every colour is set to Skip, so the laser has nothing to do.');
   else if(!cuts.length && !S.outline.on) add('warn','No cut lines','Nothing is set to Cut, so the piece will not come free of the sheet. Fine if you only want engraving.');
+
+  // The check square is drawn on the page, so a page smaller than 120 mm has
+  // nowhere to put it and it is silently dropped. Say so rather than let the
+  // student cut a sheet and wonder where the square went.
+  if(S.cal.on){
+    const pw = S.pageMode==='bed' ? S.bed.w : (artBoxMm()||{w:0}).w;
+    const ph = S.pageMode==='bed' ? S.bed.h : (artBoxMm()||{h:0}).h;
+    if(pw < CAL_MM+20 || ph < CAL_MM+20)
+      add('warn','Check square does not fit',
+        `A 100 mm square needs a page of at least 120 × 120 mm and this one is ${round(pw)} × ${round(ph)} mm, `
+        + 'so it has been left out. Switch the page size to Full bed to make room for it.');
+  }
 
   const art = artBoxMm(), pos = placeMm(art);
   if(art){
@@ -1099,7 +1191,8 @@ function preflight(){
 
   const both = active.filter(i=>i.bothInks).length;
   if(both) add('warn', both+' shape'+(both===1?'':'s')+' with an outline and a fill',
-    'Only the outline colour was used for these. If the filled area should be engraved too, give it its own colour in Canva.');
+    'Only the outline colour was used for these. If you want the inside engraved as well as the '
+    + 'outline cut, set that colour to Cut and tick "Also engrave the inside" under Colours.');
 
   S.warnings = W;
   return W;
@@ -1123,30 +1216,17 @@ function buildOutput(preview){
   const hair = HAIRLINE_MM / s;              // 0.01 mm expressed in user units
   const used = { cut:0, score:0, engrave:0 };
 
-  srcEls.forEach((src,idx)=>{
-    const node = outEls[idx];
-    if(!node) return;
-    if(inNonRender(src)) return;             // leave clipPath/defs contents alone
-    const item = byNode.get(src);
-    if(!item){ node.remove(); return; }
-
-    const op = (S.removeBg && item.isBg) ? 'ignore' : S.groups.get(item.colour).op;
-    if(op==='ignore'){ node.remove(); return; }
-    if(preview && !S.show[op]){ node.remove(); return; }
-    used[op]++;
-
-    node.removeAttribute('class');
-    node.removeAttribute('data-traced');     // internal marker, not for the driver
-    if(item.tag==='image') return;           // rasters keep their own pixels
-
-    ['fill','stroke','stroke-width','fill-opacity','stroke-opacity','opacity',
-     'filter','mix-blend-mode','style'].forEach(a=>node.removeAttribute(a));
-
-    const pen = preview ? OPS[op].pv : OPS[op].pen;
+  const WIPE = ['fill','stroke','stroke-width','fill-opacity','stroke-opacity',
+                'opacity','filter','mix-blend-mode','style'];
+  // Paint one element as one laser operation. asArea is the engrave-only choice
+  // between burning the whole filled region and just tracking the outline.
+  const styleAs = (n,part,asArea,item)=>{
+    WIPE.forEach(a=>n.removeAttribute(a));
+    const pen = preview ? OPS[part].pv : OPS[part].pen;
     const css = [];
-    if(op==='engrave' && item.src==='fill'){
+    if(part==='engrave' && asArea){
       css.push('fill:'+pen,'stroke:none');
-    } else if(op==='engrave'){
+    } else if(part==='engrave'){
       css.push('fill:none','stroke:'+pen,'stroke-width:'+(item.strokeWidth||hair));
     } else {
       // Universal needs hairline vectors; on screen that is invisible, so the
@@ -1156,7 +1236,45 @@ function buildOutput(preview){
                'stroke-linejoin:round','stroke-linecap:round');
     }
     css.push('fill-opacity:1','stroke-opacity:1','opacity:1','filter:none');
-    node.setAttribute('style',css.join(';'));
+    n.setAttribute('style',css.join(';'));
+  };
+
+  srcEls.forEach((src,idx)=>{
+    const node = outEls[idx];
+    if(!node) return;
+    if(inNonRender(src)) return;             // leave clipPath/defs contents alone
+    const item = byNode.get(src);
+    if(!item){ node.remove(); return; }
+
+    const op = (S.removeBg && item.isBg) ? 'ignore' : S.groups.get(item.colour).op;
+    if(op==='ignore'){ node.remove(); return; }
+    // Layer toggles hide one pass at a time, so a cut+engrave shape with only the
+    // engraving shown still draws -- as the engraving alone.
+    const parts = partsOf(op).filter(p => !preview || S.show[p]);
+    if(!parts.length){ node.remove(); return; }
+    parts.forEach(p=>used[p]++);
+
+    node.removeAttribute('class');
+    node.removeAttribute('data-traced');     // internal marker, not for the driver
+    if(item.tag==='image') return;           // rasters keep their own pixels
+
+    // Engraving a shape that is also being cut always means "fill the inside" --
+    // that is the whole request. On its own, engrave follows how the shape was
+    // drawn, so outline artwork stays an outline.
+    const asArea = p => p==='engrave' && (op==='engcut' || item.src==='fill');
+
+    // The second pass is a copy of the same geometry under a different pen. It goes
+    // immediately after the original so the red cut line draws over the black fill.
+    // outEls was captured before this loop, so inserting here cannot shift indices.
+    if(parts.length>1 && node.parentNode){
+      const twin = node.cloneNode(true);
+      twin.removeAttribute('id');            // a duplicate id would break xlink:href
+      twin.removeAttribute('class');
+      twin.removeAttribute('data-traced');
+      styleAs(twin, parts[1], asArea(parts[1]), item);
+      node.parentNode.insertBefore(twin, node.nextSibling);
+    }
+    styleAs(node, parts[0], asArea(parts[0]), item);
   });
 
   inner.querySelectorAll('g').forEach(g=>{
@@ -1199,7 +1317,29 @@ function buildOutput(preview){
     }));
     used.cut++;
   }
-  return { svg:out, used, art, pos, pageW, pageH };
+
+  // Size-check square: a plain 100 mm reference drawn in page millimetres, parked
+  // in the bottom-left corner because artwork defaults to the top-left.
+  const fitsCal = pageW >= CAL_MM+20 && pageH >= CAL_MM+20;
+  if(S.cal.on && fitsCal && (!preview || S.show.cut)){
+    out.appendChild(el('rect',{
+      x:10, y:pageH-CAL_MM-10, width:CAL_MM, height:CAL_MM,
+      fill:'none', stroke: preview ? OPS.cut.pv : OPS.cut.pen,
+      'stroke-width': preview ? Math.max(HAIRLINE_MM, 1.4/(S.ppm||3)) : HAIRLINE_MM
+    }));
+    used.cut++;
+  }
+
+  // Scale correction, applied last so it catches the artwork, the cut outline and
+  // the check square alike. Export only — the preview must keep showing the size
+  // that was asked for, not the slightly larger one being sent to beat the shrink.
+  const cal = calFactor();
+  if(!preview && cal!==1){
+    const g = el('g',{ transform:'scale('+cal+')' });
+    while(out.firstChild) g.appendChild(out.firstChild);
+    out.appendChild(g);
+  }
+  return { svg:out, used, art, pos, pageW, pageH, cal, fitsCal };
 }
 
 /* ================= render ================= */
@@ -1216,6 +1356,7 @@ function refresh(){
     : 'The file is cropped tight to the artwork. You position it yourself in the laser software.';
 
   syncColourRows();
+  syncCalNote();
   renderMsgs(preflight());
   renderCanvas();
 
@@ -1281,12 +1422,35 @@ function buildColourRows(){
     g.btns = {};
     choices.forEach(op=>{
       const b = document.createElement('button');
-      b.className='card'; b.setAttribute('aria-pressed', g.op===op);
+      b.className='card'; b.setAttribute('aria-pressed', isPressed(g,op));
       b.innerHTML = OP_ICON[op]+'<span>'+OPS[op].label+'</span>';
-      b.onclick = ()=>{ g.op=op; S.opChoice[g.hex]=op; refresh(); };
+      b.onclick = ()=>{
+        // Clicking CUT while cut+engrave is already on must not quietly throw the
+        // engraving away — the tick box below is the control for that.
+        if(op==='cut' && g.op==='engcut') return;
+        g.op=op; S.opChoice[g.hex]=op; syncColourRows(); refresh();
+      };
       cards.appendChild(b);
       g.btns[op] = b;
     });
+
+    // Only offered where it means something: a photo cannot be cut, and engrave or
+    // skip have no outline to add.
+    if(!special){
+      const lab = document.createElement('label');
+      lab.className = 'also';
+      lab.innerHTML = `<input type="checkbox"><span>Also engrave the inside</span>`;
+      const box = lab.querySelector('input');
+      lab.hidden  = !(g.op==='cut' || g.op==='engcut');
+      box.checked = g.op==='engcut';
+      box.onchange = ()=>{
+        g.op = box.checked ? 'engcut' : 'cut';
+        S.opChoice[g.hex] = g.op;
+        syncColourRows(); refresh();
+      };
+      row.appendChild(lab);
+      g.alsoRow = lab; g.alsoBox = box;
+    } else { g.alsoRow = null; }
     host.appendChild(row);
   });
 
@@ -1297,11 +1461,19 @@ function buildColourRows(){
   if(S.hasBg) $('rmbg').onchange = e => { S.removeBg = e.target.checked; refresh(); };
 }
 
+// Cut+engrave lights the CUT card, because that is what it is -- a cut with the
+// extra pass ticked underneath.
+const isPressed = (g,op) => g.op===op || (op==='cut' && g.op==='engcut');
+
 // Per-refresh update: touch only the pressed state, never the DOM structure.
 function syncColourRows(){
   for(const g of S.groups.values()){
     if(!g.btns) continue;
-    for(const op in g.btns) g.btns[op].setAttribute('aria-pressed', g.op===op);
+    for(const op in g.btns) g.btns[op].setAttribute('aria-pressed', isPressed(g,op));
+    if(g.alsoRow){
+      g.alsoRow.hidden  = !(g.op==='cut' || g.op==='engcut');
+      g.alsoBox.checked = g.op==='engcut';
+    }
   }
 }
 
@@ -1593,13 +1765,15 @@ function download(){
   if(bad.length && !confirm('This design still has '+bad.length+' problem'+(bad.length===1?'':'s')
       +' that will spoil the job:\n\n• '+bad.map(b=>b.t).join('\n• ')+'\n\nDownload anyway?')) return;
 
-  const { svg, pageW, pageH } = buildOutput(false);
+  const { svg, pageW, pageH, cal } = buildOutput(false);
   svg.insertBefore(document.createComment(
 ` Laser Prep — job ${S.jobCode}
   Page ${round(pageW)} x ${round(pageH)} mm — material: ${S.material||''}
   Universal pen colours: CUT ${OPS.cut.pen} (Red) | SCORE ${OPS.score.pen} (Blue) | ENGRAVE ${OPS.engrave.pen} (Black)
   Vector strokes are hairline (${HAIRLINE_MM} mm). Do NOT rescale on import —
-  set the driver page size to ${round(pageW)} x ${round(pageH)} mm. `), svg.firstChild);
+  set the driver page size to ${round(pageW)} x ${round(pageH)} mm.${cal!==1 ? `
+  Contents are scaled ${((cal-1)*100).toFixed(2)}% on purpose, to correct a measured
+  ${round(S.cal.meas)} mm result on a 100 mm check square. Leave it alone.` : ''} `), svg.firstChild);
 
   const blob = new Blob(['<?xml version="1.0" encoding="UTF-8"?>\n'
     + new XMLSerializer().serializeToString(svg)], { type:'image/svg+xml' });
@@ -1610,12 +1784,63 @@ function download(){
   setTimeout(()=>URL.revokeObjectURL(a.href),4000);
 }
 
+// Universal's software is a Windows print driver, so the laser is a printer. That
+// means the browser can drive it directly and the Illustrator round trip — which is
+// also the most likely place for a design to be silently rescaled — disappears.
+function sendToLaser(){
+  const bad = S.warnings.filter(w=>w.level==='bad');
+  if(bad.length && !confirm('This design still has '+bad.length+' problem'+(bad.length===1?'':'s')
+      +' that will spoil the job:\n\n• '+bad.map(b=>b.t).join('\n• ')+'\n\nSend it anyway?')) return;
+
+  const { svg, pageW, pageH, cal } = buildOutput(false);
+  const w = round(pageW), h = round(pageH);
+
+  if(!confirm(
+    'The print window is about to open. Three settings decide whether this comes out\n'
+   +'the right size — get them wrong and everything shrinks by a few percent:\n\n'
+   +'  1.  Destination:  the Universal laser, NOT a paper printer\n'
+   +'  2.  Scale:        Custom, 100   (never "Fit to printable area")\n'
+   +'  3.  Margins:      None\n\n'
+   +'Paper size must be '+w+' × '+h+' mm. If it is not offered, set it in the\n'
+   +'Universal driver\'s own Properties / Preferences page first.\n'
+   +(cal!==1 ? '\nThis file is being sent '+((cal-1)*100).toFixed(2)+'% '+(cal>1?'bigger':'smaller')
+              +' to correct for your\nmeasured size check. That is deliberate — do not "fix" it.\n' : '')
+   +'\nSomeone must stay with the machine from the moment it starts.\n\nOpen the print window?')) return;
+
+  // Physical size on the sheet, stated twice: the mm attributes drive layout and
+  // the inline style stops any page CSS from touching it.
+  svg.setAttribute('width', w+'mm');
+  svg.setAttribute('height', h+'mm');
+  svg.setAttribute('style','display:block;width:'+w+'mm;height:'+h+'mm');
+
+  const plate = $('plate');
+  plate.innerHTML = '';
+  plate.appendChild(svg);
+  $('pageRule').textContent = '@page{size:'+w+'mm '+h+'mm;margin:0}';
+  document.body.classList.add('toLaser');
+
+  // Tidy up whether the job was sent or cancelled, otherwise the job sheet would
+  // print on a bed-sized page next time.
+  const done = () => {
+    document.body.classList.remove('toLaser');
+    $('pageRule').textContent = '';
+    plate.innerHTML = '';
+    window.removeEventListener('afterprint', done);
+  };
+  window.addEventListener('afterprint', done);
+  window.print();
+  setTimeout(done, 1000);          // Safari and some builds never fire afterprint
+}
+
 function printSheet(){
-  const { used, art, pos, pageW, pageH } = buildOutput(false);
+  const { used, art, pos, pageW, pageH, cal, fitsCal } = buildOutput(false);
   const bad = S.warnings.filter(w=>w.level==='bad');
   const rows = ['cut','score','engrave'].filter(op=>used[op]>0).map(op=>
     `<tr><td><strong>${OPS[op].label}</strong></td><td>${OPS[op].pname} ${OPS[op].pen}</td>
      <td>${used[op]}</td><td></td><td></td><td></td></tr>`).join('');
+  // Worth calling out: the operator will see the same outline listed under two pens
+  // and needs to know that is deliberate, not a doubled-up line.
+  const combo = [...S.groups.values()].filter(g=>g.op==='engcut').length;
 
   $('sheet').innerHTML = `
     <h1>Laser job sheet</h1>
@@ -1643,13 +1868,25 @@ function printSheet(){
     ${S.outline.on?`<div class="box">A cut outline was added by this tool: a closed rectangle
       ${round(S.outline.pad)} mm clear of the artwork${S.outline.r?`, ${round(S.outline.r)} mm rounded corners`:''}.
       It is counted in the cut total above.</div>`:''}
+    ${combo?`<div class="box"><strong>${combo} colour${combo===1?' is':'s are'} set to cut + engrave.</strong>
+      Those shapes are in the file twice on purpose — filled black so the inside is engraved, and
+      again as a red hairline on the same outline so the part is cut free. It is not a doubled-up
+      line. The black pass must run before the red one, as below.</div>`:''}
     <div class="box">
       <strong>In the Universal driver:</strong> set the page size to
-      ${round(pageW)} × ${round(pageH)} mm and import at 100% — do not "fit to page", or the
-      whole job comes out the wrong size. Set power and speed per pen colour above.
-      Run engraving first, then scoring, then cutting last, so the piece does not come
-      loose and shift mid-job.
+      ${round(pageW)} × ${round(pageH)} mm and take the artwork at 100% — never "fit to page",
+      "fit to printable area" or "scale to fit", or the whole job comes out a few percent small.
+      Set power and speed per pen colour above. Run engraving first, then scoring, then cutting
+      last, so the piece does not come loose and shift mid-job.
     </div>
+    ${(S.cal.on&&fitsCal)||cal!==1?`<div class="box"><strong>Size check.</strong>
+      ${S.cal.on&&fitsCal?`A 100 mm square sits in the bottom-left corner of the sheet${cal!==1?` (sent as ${round(CAL_MM*cal)} mm)`:''}.
+      Measure it after the cut: it should come back <strong>100.0 mm</strong>. `:''}
+      ${cal!==1?`This file has been scaled <strong>${((cal-1)*100).toFixed(2)}%</strong> to correct for a
+      measured ${round(S.cal.meas)} mm on a 100 mm square. Every dimension on this sheet is the
+      <em>finished</em> size, which is what you should measure on the material.`
+      :`No scale correction is being applied — every dimension on this sheet should come out exact.`}
+      </div>`:''}
     ${S.warnings.length?`<div><strong>Checked by computer — ${S.warnings.length} note${S.warnings.length===1?'':'s'}:</strong>
       <ul>${S.warnings.map(w=>`<li><strong>${w.t}.</strong> ${w.d}</li>`).join('')}</ul></div>`:''}
     <div class="box">
@@ -1667,7 +1904,7 @@ function printSheet(){
     const o = document.createElement('option');
     o.value=m.id; o.textContent=m.name; sel.appendChild(o);
   });
-  sel.value='custom';
+  sel.value='vls460';
   sel.onchange = () => {
     const m = MACHINES.find(x=>x.id===sel.value);
     if(!m) return;
@@ -1791,24 +2028,21 @@ $('sm').oninput  = () => { S.trace.sm = +$('sm').value|0; queueTrace(); };
 $('sp').oninput  = () => { S.trace.sp = +$('sp').value|0; queueTrace(); };
 $('trInv').onchange = () => { S.trace.invert = $('trInv').checked; queueTrace(); };
 
-$('w').oninput = () => {
-  const v=+$('w').value; if(!(v>0)) return;
-  if($('lock').checked){ S.mmH = v*(S.vbH/S.vbW); $('h').value=round(S.mmH); }
-  S.mmW=v; refresh();
-};
-$('h').oninput = () => {
-  const v=+$('h').value; if(!(v>0)) return;
-  if($('lock').checked){ S.mmW = v*(S.vbW/S.vbH); $('w').value=round(S.mmW); }
-  S.mmH=v; refresh();
-};
+$('w').oninput = () => resizeArtTo('w', +$('w').value);
+$('h').oninput = () => resizeArtTo('h', +$('h').value);
 // Shrink-to-fit, then centre. The margin is baked into the target rather than
 // applied as a multiplier each press — otherwise every press took another 2% off
 // a design that already fitted.
 $('fit').onclick = () => {
   const art = artBoxMm(); if(!art || !(art.w>0) || !(art.h>0)) return;
-  const k = Math.min(S.bed.w*0.98/art.w, S.bed.h*0.98/art.h);
-  if(k < 0.999){                        // only ever shrinks, and only if it must
-    S.mmW = round(S.mmW*k); S.mmH = round(S.mmH*k);
+  // The outline pad is a fixed mm ring that does not scale with the design, so
+  // solve for the design on its own instead of scaling the padded box and
+  // overshooting the bed by two pads.
+  const raw = rawArtBoxMm(), p = olPad();
+  if(!raw || !(raw.w>0) || !(raw.h>0)) return;
+  const k = Math.min((S.bed.w*0.98 - 2*p)/raw.w, (S.bed.h*0.98 - 2*p)/raw.h);
+  if(k>0 && k<0.999){                   // only ever shrinks, and only if it must
+    S.mmW *= k; S.mmH *= k;             // no rounding: that re-introduces size error
     syncSize();
   }
   const a = artBoxMm();
@@ -1851,6 +2085,25 @@ document.querySelectorAll('.setall button').forEach(b=>{
   };
 });
 
+$('calOn').onchange = ()=>{ S.cal.on = $('calOn').checked; refresh(); };
+$('calMeas').oninput = ()=>{ S.cal.meas = +$('calMeas').value || 100; refresh(); };
+
+function syncCalNote(){
+  const m = +S.cal.meas, f = calFactor();
+  const n = $('calNote');
+  if(f === 1){
+    n.textContent = (m >= 50 && m <= 200)
+      ? 'No correction — exported at true size.'
+      : 'That is too far out to be a measurement, so no correction is being applied. Type the square’s real width, between 50 and 200.';
+    n.style.color = '';
+  } else {
+    const pct = (f-1)*100;
+    n.innerHTML = `Exporting <b style="color:var(--acc)">${pct>0?'+':''}${pct.toFixed(2)}%</b> `
+      + `${pct>0?'bigger':'smaller'} to compensate. A 100 mm square leaves here as `
+      + `${round(100*f)} mm and should come back 100 mm.`;
+  }
+}
+
 $('olOn').onchange = ()=>{ S.outline.on = $('olOn').checked; refresh(); };
 ['olPad','olR'].forEach(id=>$(id).oninput = ()=>{
   S.outline.pad = Math.max(0, +$('olPad').value||0);
@@ -1861,6 +2114,7 @@ $('olOn').onchange = ()=>{ S.outline.on = $('olOn').checked; refresh(); };
 ['bw','bh'].forEach(id=>$(id).oninput = ()=>{ $('machine').value='custom'; refresh(); });
 $('mat').oninput = refresh;
 ['px','py'].forEach(id=>$(id).oninput = refresh);
+$('toLaser').onclick = sendToLaser;
 $('dl').onclick = download;
 $('print').onclick = printSheet;
 $('reset').onclick = ()=>location.reload();

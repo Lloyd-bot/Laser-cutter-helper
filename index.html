@@ -214,6 +214,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     <button id="tGrid" aria-pressed="true" title="Grid"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2 6h12M2 10h12M6 2v12M10 2v12"/></svg></button>
     <button id="tRule" aria-pressed="true" title="Bed outline"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-dasharray="2.5 2"><rect x="2.5" y="3.5" width="11" height="9"/></svg></button>
   </div>
+  <div class="seg">
+    <button id="tCal" aria-pressed="false" title="100 mm size-check square. Works on its own with no design loaded — cut it on scrap, measure it, then correct the scale. Drag it anywhere on the bed.">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2.5" y="2.5" width="11" height="11"/><path d="M2.5 5.5h2M2.5 8h2M2.5 10.5h2"/></svg>
+      <b style="font:700 10px ui-sans-serif,sans-serif;margin-left:4px">100</b>
+    </button>
+  </div>
   <div class="seg" id="zoomSeg">
     <button id="zOut" title="Zoom out (−)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3.5 8h9"/></svg></button>
     <button id="zFit" title="Fit the whole bed in view (0)"><b style="font:700 10px ui-sans-serif,sans-serif;min-width:34px;text-align:center">100%</b></button>
@@ -229,7 +235,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     <div class="scroll">
       <div class="intro">
         <h1>Artwork → Universal laser</h1>
-        <p>Drop in <b>any picture</b> &mdash; PNG, JPG, a screenshot, a photo of a drawing &mdash; and it gets traced into cut lines. Already have a vector file? Drop the <b>SVG</b> instead and it skips tracing. Either way: set the real size, say what each colour should do, then <b>send it straight to the laser</b> &mdash; no Illustrator in between. Runs entirely in your browser.</p>
+        <p>Drop in <b>any picture</b> &mdash; PNG, JPG, a screenshot, a photo of a drawing &mdash; and it gets traced into cut lines. Already have a vector file? Drop the <b>SVG</b> instead and it skips tracing. Either way: set the real size, say what each colour should do, then <b>save the cut-ready EMF</b> and import that in the Universal software &mdash; no Illustrator in between. Runs entirely in your browser.</p>
+        <p class="sub" style="margin-top:7px">Just calibrating? Hit the <b style="color:var(--ink)">100</b> button
+          at the top. The check square is a job on its own and needs no design loaded.</p>
       </div>
 
       <div class="sec">
@@ -340,7 +348,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
         <label style="display:flex;gap:7px;align-items:center;font-size:12px;cursor:pointer">
           <input type="checkbox" id="calOn" style="width:auto;padding:0"> Add a 100 mm check square
         </label>
-        <p class="sub">Adds a plain 100 mm square in cut red to the corner of the sheet. Cut it on scrap once.</p>
+        <p class="sub">A plain 100 mm square in cut red. <b style="color:var(--ink)">Drag it anywhere on the bed</b>
+          in the preview, so it lands on a corner of the offcut actually in the machine. It needs no design
+          loaded — the <b style="color:var(--ink)">100</b> button at the top switches it on by itself, and on
+          its own it is the whole job.</p>
+        <button class="btn" id="calHome" style="margin-top:7px">Park it back in the corner</button>
         <label class="lbl" style="margin-top:11px">It actually measured</label>
         <div class="fieldwrap"><input type="number" id="calMeas" min="50" max="200" step="0.1" value="100"><u>mm</u></div>
         <p class="sub" id="calNote">Leave at 100 until you have measured one.</p>
@@ -381,13 +393,19 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     </div>
 
     <div class="foot">
-      <button class="btn acc" id="toLaser" disabled>
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4.5 6V2.5h7V6M4 11.5h8v2H4z"/><path d="M3 6h10a1.5 1.5 0 0 1 1.5 1.5v3H1.5v-3A1.5 1.5 0 0 1 3 6Z"/></svg>
-        Send to the laser</button>
-      <button class="btn" id="dl" disabled>
+      <button class="btn acc" id="emf" disabled>
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 2v8m0 0 3-3m-3 3L5 7M2.5 12.5h11"/></svg>
-        Download SVG instead</button>
+        Save cut-ready EMF</button>
+      <p class="sub" style="margin:-2px 0 6px">Import this one in the Universal software. The PDF below is
+        the fallback if your version will not take it.</p>
+      <button class="btn" id="pdf" disabled>
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 2v8m0 0 3-3m-3 3L5 7M2.5 12.5h11"/></svg>
+        Save cut-ready PDF</button>
+      <button class="btn" id="dl" disabled>
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 10.5 8 5.5l5 5"/><path d="M2.5 13.5h11"/></svg>
+        Download SVG</button>
       <button class="btn" id="print" disabled>Print job sheet</button>
+      <button class="btn ghost" id="toLaser" disabled style="margin-top:6px">Print to the laser (engraves — see warning)</button>
     </div>
   </aside>
 
@@ -426,6 +444,16 @@ const calFactor = () => {
   const m = +S.cal.meas;
   return (m >= 50 && m <= 200 && Math.abs(m-100) > 0.05) ? 100/m : 1;
 };
+// The check square is a job in its own right. Calibrating is the FIRST thing you
+// do on a machine you do not trust yet, and before today that meant loading a
+// student's design you did not want to cut just to get the square onto the sheet.
+// It now stands alone, and it is draggable, so it can go on the corner of the
+// offcut actually sitting in the machine rather than wherever the code put it.
+// y === null means "never placed" -> park it bottom-left, clear of top-left artwork.
+const calY = () => S.cal.y==null ? Math.max(0, S.bed.h-CAL_MM-10) : S.cal.y;
+const calBox = () => ({ x:S.cal.x, y:calY(), w:CAL_MM, h:CAL_MM });
+// Is there anything at all to draw, check and send? Artwork, or just the square.
+const liveJob = () => S.loaded || S.cal.on;
 const DRAWABLE = 'path,rect,circle,ellipse,line,polyline,polygon,text,image,use';
 const NON_RENDER = new Set(['defs','clippath','mask','marker','pattern','symbol']);
 
@@ -478,7 +506,7 @@ const S = {
   outline:{ on:false, pad:4, r:3 },
   // Size check. meas is what a cut 100 mm square really measured, so 100/meas is
   // the factor the exported file has to be stretched by to land on true size.
-  cal:{ on:false, meas:100 },
+  cal:{ on:false, meas:100, x:10, y:null },
   show:{ cut:true, score:true, engrave:true }, grid:true, rule:true,
   warnings:[], jobCode:''
 };
@@ -879,8 +907,7 @@ function load(text,name,keep,fromTrace){
   }
   syncSize(); syncPos(); syncPad();
   ['secSize','secPlace','secOutline','secCal','secColours','secChecks'].forEach(i=>$(i).hidden=false);
-  $('dl').disabled = $('print').disabled = $('toLaser').disabled = false;
-  $('empty').hidden = true; $('key').hidden = false;
+  syncLive();
   if(!prev) $('dropHost').innerHTML = `<div class="filechip">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 1.5H4a1.5 1.5 0 0 0-1.5 1.5v10A1.5 1.5 0 0 0 4 14.5h8a1.5 1.5 0 0 0 1.5-1.5V6z"/><path d="M9 1.5V6h4.5"/></svg>
       <span>${S.name}${S.trace.on?' · traced':'.svg'}</span></div>`;
@@ -1105,17 +1132,25 @@ function preflight(){
     if(partsOf(g.op).includes(op)) a.push(...g.items); return a; };
   const cuts = byOp('cut'), scores = byOp('score');
   const active = activeItems();
-  const sx = sxMm(), sy = syMm();
+  const sx = S.loaded ? sxMm() : 1, sy = S.loaded ? syMm() : 1;
 
-  if(!active.length) add('bad','Nothing will be made','Every colour is set to Skip, so the laser has nothing to do.');
+  // A check-square-only job is not an empty job, so the "nothing will be made"
+  // alarm has to tell the difference between no design at all and a design whose
+  // every colour has been set to Skip.
+  if(!S.loaded)
+    add('warn','Check square only',
+      'No design is loaded, so this job cuts the 100 mm square and nothing else. Run it on '
+      + 'scrap, measure the square edge to edge, then type what you got into "It actually measured".');
+  else if(!active.length) add('bad','Nothing will be made','Every colour is set to Skip, so the laser has nothing to do.');
   else if(!cuts.length && !S.outline.on) add('warn','No cut lines','Nothing is set to Cut, so the piece will not come free of the sheet. Fine if you only want engraving.');
 
   // The check square is drawn on the page, so a page smaller than 120 mm has
   // nowhere to put it and it is silently dropped. Say so rather than let the
   // student cut a sheet and wonder where the square went.
   if(S.cal.on){
-    const pw = S.pageMode==='bed' ? S.bed.w : (artBoxMm()||{w:0}).w;
-    const ph = S.pageMode==='bed' ? S.bed.h : (artBoxMm()||{h:0}).h;
+    const bedPage = S.pageMode==='bed' || !S.loaded;
+    const pw = bedPage ? S.bed.w : (artBoxMm()||{w:0}).w;
+    const ph = bedPage ? S.bed.h : (artBoxMm()||{h:0}).h;
     if(pw < CAL_MM+20 || ph < CAL_MM+20)
       add('warn','Check square does not fit',
         `A 100 mm square needs a page of at least 120 × 120 mm and this one is ${round(pw)} × ${round(ph)} mm, `
@@ -1134,6 +1169,26 @@ function preflight(){
       add('bad','Hanging off the bed',
         'Part of the design sits outside the bed and would be lost. Drag it back inside the dashed outline, '
         + 'or click a corner on the placement pad.');
+  }
+
+  // The size correction scales positions as well as sizes -- it has to, or the
+  // gap between two parts would not grow with them. That means a job which fits
+  // the bed at true size can be flung off it by a large correction, and the
+  // checks above all run on the unscaled numbers, so nothing else would notice.
+  const cf = calFactor();
+  if(cf !== 1){
+    let fx = 0, fy = 0;
+    if(art){ fx = (pos.x+art.w)*cf; fy = (pos.y+art.h)*cf; }
+    if(S.cal.on){
+      fx = Math.max(fx, (calBox().x+CAL_MM)*cf);
+      fy = Math.max(fy, (calBox().y+CAL_MM)*cf);
+    }
+    if(fx > S.bed.w+0.5 || fy > S.bed.h+0.5)
+      add('bad','Size correction pushes the job off the bed',
+        `Everything is being scaled ${((cf-1)*100).toFixed(2)}% to correct your measured size check, `
+        + `which puts the far corner at ${round(fx)}, ${round(fy)} mm on a ${S.bed.w} × ${S.bed.h} mm bed. `
+        + 'Move the design nearer the top-left corner, make it smaller, or re-measure the check square '
+        + '— a correction this large usually means the measurement was mistyped.');
   }
 
   const openCuts = cuts.filter(isOpen).length;
@@ -1180,10 +1235,10 @@ function preflight(){
   if(faded) add('warn', faded+' see-through shape'+(faded===1?'':'s'),
     'Partly transparent shapes have been forced to solid — the laser cannot do half-strength from opacity. If you wanted a lighter burn, give it its own colour and turn the power down in the driver.');
 
-  if(S.svg.querySelector('clipPath,mask')) add('warn','Cropped or masked shapes',
+  if(S.loaded && S.svg.querySelector('clipPath,mask')) add('warn','Cropped or masked shapes',
     'Part of this design is cropped. The crop is preserved, but some laser software ignores it and cuts the whole original shape including the hidden part. Compare the preview with your Canva design.');
 
-  if(S.svg.querySelector('use')) add('warn','Re-used symbols',
+  if(S.loaded && S.svg.querySelector('use')) add('warn','Re-used symbols',
     'This file re-uses shapes by reference, so colour changes may not reach all of them. Check the preview matches what you expect.');
 
   if(S.hasBg && !S.removeBg) add('warn','Full-page background included',
@@ -1203,18 +1258,20 @@ function preflight(){
 // place, then wraps it in one transform that converts user units to millimetres
 // and positions the artwork on the bed.
 function buildOutput(preview){
-  const inner = S.svg.cloneNode(true);
-  inner.querySelectorAll('style,title,desc,metadata').forEach(n=>n.remove());
+  const used = { cut:0, score:0, engrave:0 };
+  // A check-square job has no artwork at all — the square IS the job — so every
+  // step below that walks the design tree is skipped and the page is just the bed.
+  const inner = S.loaded ? S.svg.cloneNode(true) : null;
+  if(inner) inner.querySelectorAll('style,title,desc,metadata').forEach(n=>n.remove());
 
-  const srcEls = Array.from(S.svg.querySelectorAll(DRAWABLE));
-  const outEls = Array.from(inner.querySelectorAll(DRAWABLE));
+  const srcEls = S.loaded ? Array.from(S.svg.querySelectorAll(DRAWABLE)) : [];
+  const outEls = inner ? Array.from(inner.querySelectorAll(DRAWABLE)) : [];
   const byNode = new Map(S.items.map(i=>[i.node,i]));
-  const sx = sxMm(), sy = syMm();
+  const sx = S.loaded ? sxMm() : 1, sy = S.loaded ? syMm() : 1;
   // A stretched design scales strokes unevenly, so size the hairline off the
   // larger axis — that way the widest it can ever render is still 0.01 mm.
   const s = Math.max(sx,sy);
   const hair = HAIRLINE_MM / s;              // 0.01 mm expressed in user units
-  const used = { cut:0, score:0, engrave:0 };
 
   const WIPE = ['fill','stroke','stroke-width','fill-opacity','stroke-opacity',
                 'opacity','filter','mix-blend-mode','style'];
@@ -1277,7 +1334,7 @@ function buildOutput(preview){
     styleAs(node, parts[0], asArea(parts[0]), item);
   });
 
-  inner.querySelectorAll('g').forEach(g=>{
+  if(inner) inner.querySelectorAll('g').forEach(g=>{
     if(inNonRender(g)) return;
     const p = g.parentNode;
     if(p && p.nodeType===1 && NON_RENDER.has(p.nodeName.toLowerCase())) return;
@@ -1285,11 +1342,12 @@ function buildOutput(preview){
     else ['style','fill','stroke','class'].forEach(a=>g.removeAttribute(a));
   });
 
-  const art = artBoxMm();
+  const art = S.loaded ? artBoxMm() : null;
   const pos = placeMm(art);
   // The preview always shows the artwork sitting on the bed. A "just art" export
   // is cropped tight instead, so there the artwork goes to the page origin.
-  const onBed = preview || S.pageMode==='bed';
+  // With no artwork there is nothing to crop to, so the page stays the bed.
+  const onBed = preview || S.pageMode==='bed' || !S.loaded;
   const pageW = onBed ? S.bed.w : (art ? art.w : S.mmW);
   const pageH = onBed ? S.bed.h : (art ? art.h : S.mmH);
   const tx = art ? (onBed ? pos.x : 0) - art.x : 0;
@@ -1300,10 +1358,12 @@ function buildOutput(preview){
     width:round(pageW)+'mm', height:round(pageH)+'mm',
     viewBox:`0 0 ${round(pageW)} ${round(pageH)}`
   });
-  const wrap = el('g',{ transform:
-    `translate(${tx} ${ty}) scale(${sx} ${sy}) translate(${-S.vbX} ${-S.vbY})` });
-  while(inner.firstChild) wrap.appendChild(inner.firstChild);
-  out.appendChild(wrap);
+  if(inner){
+    const wrap = el('g',{ transform:
+      `translate(${tx} ${ty}) scale(${sx} ${sy}) translate(${-S.vbX} ${-S.vbY})` });
+    while(inner.firstChild) wrap.appendChild(inner.firstChild);
+    out.appendChild(wrap);
+  }
 
   // Generated cut outline. Drawn in page millimetres rather than inside the
   // artwork transform, so it is a true rectangle however the design is scaled.
@@ -1322,12 +1382,13 @@ function buildOutput(preview){
   // in the bottom-left corner because artwork defaults to the top-left.
   const fitsCal = pageW >= CAL_MM+20 && pageH >= CAL_MM+20;
   if(S.cal.on && fitsCal && (!preview || S.show.cut)){
-    out.appendChild(el('rect',{
-      x:10, y:pageH-CAL_MM-10, width:CAL_MM, height:CAL_MM,
-      fill:'none', stroke: preview ? OPS.cut.pv : OPS.cut.pen,
-      'stroke-width': preview ? Math.max(HAIRLINE_MM, 1.4/(S.ppm||3)) : HAIRLINE_MM
-    }));
     used.cut++;
+    // In the preview the square is drawn by renderCanvas instead, into a layer of
+    // its own, so that dragging the square cannot drag the artwork along with it.
+    if(!preview) out.appendChild(el('rect',{
+      x:calBox().x, y:calBox().y, width:CAL_MM, height:CAL_MM,
+      fill:'none', stroke:OPS.cut.pen, 'stroke-width':HAIRLINE_MM
+    }));
   }
 
   // Scale correction, applied last so it catches the artwork, the cut outline and
@@ -1344,7 +1405,7 @@ function buildOutput(preview){
 
 /* ================= render ================= */
 function refresh(){
-  if(!S.loaded) return;
+  if(!liveJob()) return;
   S.bed.w = Math.max(10, +$('bw').value||600);
   S.bed.h = Math.max(10, +$('bh').value||400);
   S.pos.x = +$('px').value||0;
@@ -1360,10 +1421,12 @@ function refresh(){
   renderMsgs(preflight());
   renderCanvas();
 
-  const art = artBoxMm();
-  $('sizeNote').textContent = art
-    ? `Artwork covers ${round(art.w)} × ${round(art.h)} mm of a ${round(S.mmW)} × ${round(S.mmH)} mm page.`
-    : 'Nothing visible — every colour is set to Skip.';
+  const art = S.loaded ? artBoxMm() : null;
+  $('sizeNote').textContent = !S.loaded
+    ? 'No design loaded — this job is the 100 mm check square on its own.'
+    : art
+      ? `Artwork covers ${round(art.w)} × ${round(art.h)} mm of a ${round(S.mmW)} × ${round(S.mmH)} mm page.`
+      : 'Nothing visible — every colour is set to Skip.';
 }
 
 // Row order is fixed once, at harvest. Sorting by current operation would make
@@ -1501,7 +1564,7 @@ function setHud(box,used){
 
 function renderCanvas(){
   const host = $('stagewrap');
-  const art = artBoxMm(), pos = placeMm(art);
+  const art = S.loaded ? artBoxMm() : null, pos = placeMm(art);
 
   // The visible area has to cover the bed *and* anything hanging off it. A
   // bed-sized viewBox silently clips an oversized design at the edge of the SVG,
@@ -1567,6 +1630,30 @@ function renderCanvas(){
   while(svg.firstChild) g.appendChild(svg.firstChild);
   view.appendChild(g);
 
+  // The check square, in a layer of its own so it drags independently of the
+  // artwork. Two rects on the same geometry: the hairline you actually cut, and
+  // a fat invisible one over the edge to give a 14-pixel grab target, because a
+  // 0.01 mm line is impossible to hit with a mouse.
+  let calg = null;
+  const calFits = S.bed.w >= CAL_MM+20 && S.bed.h >= CAL_MM+20;
+  if(S.cal.on && calFits && S.show.cut){
+    const b = calBox();
+    calg = el('g',{ id:'calg' });
+    calg.appendChild(el('rect',{
+      x:b.x, y:b.y, width:b.w, height:b.h, fill:'none',
+      stroke:OPS.cut.pv, 'stroke-width':Math.max(HAIRLINE_MM, px(1.4))
+    }));
+    calg.appendChild(el('rect',{
+      x:b.x, y:b.y, width:b.w, height:b.h, fill:'none', stroke:'transparent',
+      'stroke-width':px(14), 'data-move':'cal', style:'cursor:move;pointer-events:stroke'
+    }));
+    const tag = el('text',{ x:b.x+b.w/2, y:b.y+b.h/2, fill:'#f8485e',
+      'text-anchor':'middle', 'font-size':px(12), 'pointer-events':'none' });
+    tag.textContent = '100 mm check';
+    calg.appendChild(tag);
+    view.appendChild(calg);
+  }
+
   const fr = el('text',{ x:px(2), y:S.bed.h+px(14), fill:'#4b5469',
     'font-size':px(11), 'letter-spacing':px(1.5) });
   fr.textContent='front';
@@ -1576,7 +1663,7 @@ function renderCanvas(){
   if(handles) handles.place({ x:pos.x, y:pos.y, w:art.w, h:art.h });
 
   host.appendChild(view);
-  bindStage(view, g, handles, art ? { x:pos.x, y:pos.y, w:art.w, h:art.h } : null);
+  bindStage(view, g, handles, art ? { x:pos.x, y:pos.y, w:art.w, h:art.h } : null, calg);
 
   $('zFit').querySelector('b').textContent = Math.round(S.view.zoom*100)+'%';
   setHud(art ? { x:pos.x, y:pos.y, w:art.w, h:art.h } : null, used);
@@ -1648,7 +1735,7 @@ function makeHandles(view, px){
 }
 
 let drag = null;
-function bindStage(view, artg, handles, box0){
+function bindStage(view, artg, handles, box0, calg){
   const toMm = e => {
     const m = view.getScreenCTM(); if(!m) return { x:0, y:0 };
     const p = view.createSVGPoint(); p.x=e.clientX; p.y=e.clientY;
@@ -1665,17 +1752,22 @@ function bindStage(view, artg, handles, box0){
 
   view.addEventListener('pointerdown', e=>{
     const t = e.target;
+    const tag    = t.getAttribute ? t.getAttribute('data-move') : null;
     const corner = box0 && t.getAttribute && t.getAttribute('data-handle');
-    const move   = box0 && t.getAttribute && t.getAttribute('data-move');
+    // The check square carries its own tag so it can be grabbed with no artwork
+    // loaded, which is the whole point of it being a job of its own.
+    const onCal  = !!calg && tag==='cal';
+    const move   = !!box0 && !!tag && !onCal;
     // Anything that is not the artwork pans the view — the usual design-tool deal.
-    const pan = !corner && !move;
+    const pan = !corner && !move && !onCal;
     if(pan && e.button!==0 && e.button!==1) return;
     e.preventDefault();
     // Capture is a nicety — losing it must not abort the gesture.
     try{ view.setPointerCapture(e.pointerId); }catch(err){}
     view.classList.add('dragging');
-    drag = { mode: corner?'scale':move?'move':'pan', corner, p0:toMm(e), box:box0,
-             pos:{...S.pos}, mmW:S.mmW, mmH:S.mmH, moved:false,
+    drag = { mode: corner?'scale':onCal?'cal':move?'move':'pan', corner, p0:toMm(e), box:box0,
+             pos:{...S.pos}, cal0:{ x:calBox().x, y:calBox().y },
+             mmW:S.mmW, mmH:S.mmH, moved:false,
              c0:{ x:e.clientX, y:e.clientY },
              view0:{...S.view}, mmPerPx:(S.fitBox.w/S.view.zoom)/view.getBoundingClientRect().width };
   });
@@ -1695,6 +1787,19 @@ function bindStage(view, artg, handles, box0){
       return;
     }
     const p = toMm(e);
+
+    // The check square only ever moves — never scales. Its size is the one thing
+    // about it that must not change, since 100 mm is the whole measurement.
+    if(drag.mode==='cal'){
+      const nx = snap(drag.cal0.x + (p.x-drag.p0.x), e);
+      const ny = snap(drag.cal0.y + (p.y-drag.p0.y), e);
+      S.cal.x = Math.min(Math.max(nx,0), Math.max(0, S.bed.w-CAL_MM));
+      S.cal.y = Math.min(Math.max(ny,0), Math.max(0, S.bed.h-CAL_MM));
+      calg.setAttribute('transform',
+        `translate(${S.cal.x-drag.cal0.x} ${S.cal.y-drag.cal0.y})`);
+      setHud(drag.box, S.used);
+      return;
+    }
 
     if(drag.mode==='move'){
       const want = clampPos({ x:snap(drag.pos.x + (p.x-drag.p0.x), e),
@@ -1779,14 +1884,508 @@ function download(){
     + new XMLSerializer().serializeToString(svg)], { type:'image/svg+xml' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `${S.name}-LASER-${round(pageW)}x${round(pageH)}mm.svg`;
+  a.download = `${safeName(S.loaded?S.name:"size-check")}-LASER-${round(pageW)}x${round(pageH)}mm.svg`;
   a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),4000);
 }
 
-// Universal's software is a Windows print driver, so the laser is a printer. That
-// means the browser can drive it directly and the Illustrator round trip — which is
-// also the most likely place for a design to be silently rescaled — disappears.
+/* ================= cut-ready PDF ================= */
+// Why this exists, and why it is now the main button.
+//
+// The laser is a Windows print driver, so printing to it from the browser looks
+// like it ought to work, and the job does arrive in the Universal software. But
+// Chrome hands a printer driver a *picture* of the page, not the lines the page
+// is made of. The driver decides cut-versus-engrave by measuring the width of
+// each stroke it is given — and in a bitmap there are no strokes left to
+// measure, so it treats the whole job as raster and burns it scan line by scan
+// line. That is exactly the "it keeps going over the same line instead of
+// cutting" symptom. No amount of hairline-thin pure red in the SVG can fix it,
+// because the strokes are gone before the driver ever sees them. Illustrator
+// worked for the reverse reason: it sends the driver real vector pen strokes.
+//
+// A PDF carries the strokes themselves, all the way to the machine. Universal's
+// software can import PDF directly (Direct File Import, into the UCP), and
+// failing that Acrobat Reader prints PDFs to the driver as true vectors. Either
+// route skips both the browser's print pipeline and Illustrator.
+//
+// So this writes the PDF by hand. No library — it is a single file that has to
+// keep working on a locked-down school PC with no network.
+const PT = 72/25.4;                 // mm -> PostScript points
+const PDF_HAIR_MM = 0.02;           // comfortably under Universal's 0.025 mm cutoff
+const FLAT_MM = 0.08;               // curve sampling step: well below the kerf
+const SIMPLIFY_MM = 0.02;           // drop a point this close to its neighbours' line
+
+// Flatten any SVG geometry into polylines in page millimetres.
+// getPointAtLength walks a multi-subpath path continuously but does not
+// interpolate between subpaths — it jumps — so a sample landing far further than
+// one step from the last one marks the start of a separate loop. Without that
+// check every hole would be joined to its outline by a stray cut line.
+function flattenEl(node, m){
+  let L = 0;
+  try { L = node.getTotalLength(); } catch(e){ return []; }
+  if(!(L > 0)) return [];
+  const step = Math.min(FLAT_MM, L/4);
+  const steps = Math.min(400000, Math.max(2, Math.ceil(L/step)));
+  const subs = [];
+  let cur = null, prev = null;
+  for(let i=0;i<=steps;i++){
+    let p;
+    try { p = node.getPointAtLength(L*i/steps); } catch(e){ break; }
+    const q = p.matrixTransform(m);
+    if(prev && Math.hypot(q.x-prev.x, q.y-prev.y) > step*4) cur = null;
+    if(cur) cur.push(q); else subs.push(cur = [q]);
+    prev = q;
+  }
+  return subs;
+}
+
+// Straight runs come back from arc-length sampling as hundreds of collinear
+// points. Dropping them keeps a traced design's PDF to a sane size.
+//
+// The test has to be "would the straight line from the last kept point to here
+// stay within tolerance of EVERY point it replaces" — not just of the previous
+// one. Checking only the previous point passes almost any span, because the
+// second-to-last point of a shallow arc always sits close to the chord, and a
+// 50 mm circle duly collapsed into a 13-sided polygon three quarters of a
+// millimetre off true. Visible flats on every curve in the job.
+const RUN_MAX = 600;                // bounds the inner loop on long straight runs
+function simplify(pts){
+  if(pts.length < 3) return pts;
+  const out = [pts[0]];
+  let anchor = 0;
+  for(let i=2;i<pts.length;i++){
+    const a = pts[anchor], c = pts[i];
+    const dx = c.x-a.x, dy = c.y-a.y, L = Math.hypot(dx,dy);
+    let worst = 0;
+    for(let k=anchor+1;k<i;k++){
+      const b = pts[k];
+      const d = L < 1e-9 ? Math.hypot(b.x-a.x, b.y-a.y)
+                         : Math.abs(dx*(a.y-b.y) - dy*(a.x-b.x))/L;
+      if(d > worst){ worst = d; if(worst > SIMPLIFY_MM) break; }
+    }
+    if(worst > SIMPLIFY_MM || i-anchor > RUN_MAX){ out.push(pts[i-1]); anchor = i-1; }
+  }
+  out.push(pts[pts.length-1]);
+  return out;
+}
+
+const pdfNum = v => v.toFixed(3).replace(/\.?0+$/,'') || '0';
+
+// PDF is y-up from the bottom-left, SVG is y-down from the top-left.
+function pdfPath(subs, pageH){
+  const parts = [];
+  for(const raw of subs){
+    const p = simplify(raw);
+    if(p.length < 2) continue;
+    const last = p[p.length-1];
+    // Sampling runs at a constant step along the WHOLE path, so for every
+    // subpath but the final one the boundary falls mid-loop: the last sample sits
+    // up to one step short of where the loop actually started. Testing closure
+    // any tighter than that step leaves every hole in the design as an open line
+    // with a hairline gap in it — which is precisely the thing this tool exists
+    // to prevent. Closing on the step, then letting PDF's own h operator join
+    // back to the exact start point, makes the loop watertight.
+    const closed = Math.hypot(p[0].x-last.x, p[0].y-last.y) < FLAT_MM*1.6;
+    const pt = q => pdfNum(q.x*PT)+' '+pdfNum((pageH-q.y)*PT);
+    const body = p.slice(1, closed ? p.length-1 : p.length).map(q=>pt(q)+' l');
+    parts.push(pt(p[0])+' m '+body.join(' ')+(closed ? ' h' : ''));
+  }
+  return parts;
+}
+
+function buildPdf(pageW, pageH, content, title){
+  // Offsets below are string indices, so everything in the file must be ASCII or
+  // the xref table points at the wrong bytes and the PDF will not open.
+  const ascii = s => String(s).replace(/[^\x20-\x7E]/g,'_').replace(/([\\()])/g,'\\$1');
+  const objs = [null,
+    '<</Type /Catalog /Pages 2 0 R>>',
+    '<</Type /Pages /Kids [3 0 R] /Count 1>>',
+    '<</Type /Page /Parent 2 0 R /MediaBox [0 0 '+pdfNum(pageW*PT)+' '+pdfNum(pageH*PT)
+      +'] /Resources <<>> /Contents 4 0 R>>',
+    '<</Length '+content.length+'>>\nstream\n'+content+'\nendstream',
+    '<</Title ('+ascii(title)+') /Creator (Laser Prep) /Producer (Laser Prep)>>'
+  ];
+  let out = '%PDF-1.4\n';
+  const off = [];
+  for(let i=1;i<objs.length;i++){
+    off[i] = out.length;
+    out += i+' 0 obj\n'+objs[i]+'\nendobj\n';
+  }
+  const xref = out.length;
+  out += 'xref\n0 '+objs.length+'\n0000000000 65535 f \n';
+  for(let i=1;i<objs.length;i++) out += String(off[i]).padStart(10,'0')+' 00000 n \n';
+  out += 'trailer\n<</Size '+objs.length+' /Root 1 0 R /Info 5 0 R>>\nstartxref\n'+xref+'\n%%EOF\n';
+  return out;
+}
+
+// Shared by both vector exports. Builds the output, parks it off-screen because
+// getComputedStyle and getPointAtLength only work on a node that is really in
+// the document, and reads every drawable back as polylines in page millimetres.
+// The width is set in bare user units to match the viewBox, which makes every
+// getCTM() hand back millimetres with no scaling of its own to undo.
+function collectGeometry(){
+  const { svg, pageW, pageH, cal } = buildOutput(false);
+  const w = round(pageW), h = round(pageH);
+  svg.setAttribute('width', w);
+  svg.setAttribute('height', h);
+  svg.removeAttribute('style');
+  const hold = document.createElement('div');
+  hold.style.cssText = 'position:fixed;left:-99999px;top:0;opacity:0;pointer-events:none';
+  hold.appendChild(svg);
+  document.body.appendChild(hold);
+
+  // Grouped by pen, and emitted engrave -> score -> cut, which is the only safe
+  // order: cut the piece free first and it shifts before it is engraved.
+  const lay = { engF:[], engS:[], score:[], cut:[] };
+  let skipped = 0;
+  try{
+    svg.querySelectorAll(DRAWABLE).forEach(node=>{
+      if(inNonRender(node)) return;
+      const tag = node.nodeName.toLowerCase();
+      // A photo is pixels, not strokes, and live text is not outlines yet.
+      // Neither can be written as a vector path, so neither goes in.
+      if(tag==='image' || tag==='text'){ skipped++; return; }
+      const m = node.getCTM();
+      if(!m) return;
+      const cs = getComputedStyle(node);
+      const subs = flattenEl(node, m);
+      if(!subs.length) return;
+      const evenOdd = cs.fillRule === 'evenodd';
+      const stroke = toHex(cs.stroke), fill = toHex(cs.fill);
+      if(fill === OPS.engrave.pen) lay.engF.push({ subs, evenOdd });
+      if(stroke === OPS.cut.pen)          lay.cut.push({ subs });
+      else if(stroke === OPS.score.pen)   lay.score.push({ subs });
+      else if(stroke === OPS.engrave.pen) lay.engS.push({ subs });
+    });
+  } finally { hold.remove(); }
+
+  const total = lay.engF.length + lay.engS.length + lay.score.length + lay.cut.length;
+  return { lay, skipped, total, w, h, cal };
+}
+
+// Shared gate: refuse quietly if the job is broken, and explain an empty export.
+function exportReady(g, verb){
+  const bad = S.warnings.filter(w=>w.level==='bad');
+  if(bad.length && !confirm('This design still has '+bad.length+' problem'+(bad.length===1?'':'s')
+      +' that will spoil the job:\n\n• '+bad.map(b=>b.t).join('\n• ')+'\n\n'+verb+' anyway?')) return false;
+  if(!g.total){
+    alert('Nothing could be written to the file.\n\n'
+        + (g.skipped ? g.skipped+' photo or text item'+(g.skipped===1?' was':'s were')+' skipped, because '
+          + 'neither can be turned into a cut line. Trace the picture instead, or flatten the text '
+          + 'to shapes in Canva.' : 'Every colour appears to be set to Skip.'));
+    return false;
+  }
+  return true;
+}
+
+const saveFile = (bytes, type, name) => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([bytes], { type }));
+  a.download = name;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  return name;
+};
+
+const jobName = () => S.loaded ? S.name : 'size-check';
+
+// Flattening a busy traced design takes a couple of seconds, and it all happens
+// on the main thread, so the window simply stops responding. Without a label
+// saying so that reads as a crash, and the natural response is to click again.
+// Two frames of delay because one is not always enough for the label to paint
+// before the thread locks up.
+function withBusy(btn, label, work){
+  const html = btn.innerHTML;
+  btn.disabled = true;
+  btn.textContent = label;
+  document.body.style.cursor = 'progress';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    try { work(); }
+    finally {
+      btn.innerHTML = html;
+      btn.disabled = !liveJob();
+      document.body.style.cursor = '';
+    }
+  }));
+}
+// A student's file can be called anything at all, and Windows will not accept
+// \ / : * ? " < > | in a filename. Left in, the download silently fails or lands
+// under a mangled name nobody can find again at the laser PC.
+const safeName = s => (String(s).replace(/[\\/:*?"<>|\x00-\x1f]/g,'-')
+  .replace(/\s+/g,' ').trim().replace(/^[.\s]+|[.\s]+$/g,'').slice(0,60)) || 'design';
+
+function exportPDF(){
+  const g = collectGeometry();
+  const { lay, skipped, w, h, cal } = g;
+  if(!exportReady(g,'Save')) return;
+  const C = [pdfNum(PDF_HAIR_MM*PT)+' w 1 J 1 j'];
+  const emit = (recs, setCol, op) => {
+    if(!recs.length) return;
+    C.push(setCol);
+    for(const r of recs){
+      const p = pdfPath(r.subs, h);
+      if(p.length) C.push(p.join('\n')+'\n'+(op==='f' ? (r.evenOdd?'f*':'f') : op));
+    }
+  };
+  emit(lay.engF, '0 0 0 rg', 'f');
+  emit(lay.engS, '0 0 0 RG', 'S');
+  emit(lay.score,'0 0 1 RG', 'S');
+  emit(lay.cut,  '1 0 0 RG', 'S');
+
+  const nm = jobName();
+  const pdf = buildPdf(w, h, C.join('\n'),
+    'Laser Prep '+nm+' job '+S.jobCode+' '+w+'x'+h+'mm');
+
+  // Bytes, not characters: the content is ASCII by construction, so this is a
+  // straight 1:1 copy and the xref offsets written above stay true.
+  const bytes = new Uint8Array(pdf.length);
+  for(let i=0;i<pdf.length;i++) bytes[i] = pdf.charCodeAt(i) & 0xff;
+
+  const fn = saveFile(bytes, 'application/pdf', `${safeName(nm)}-CUT-${w}x${h}mm.pdf`);
+
+  alert('Saved: '+fn+'\n\n'
+    + 'Every line in it is a '+PDF_HAIR_MM+' mm hairline in pure pen colour, which is what\n'
+    + 'the Universal driver reads as "cut" rather than "engrave".\n\n'
+    + 'This is the fallback. Try the EMF first — that is the one the Universal\n'
+    + 'software imports directly. Use this PDF if your version will not take it:\n\n'
+    + '  1.  Newer UCP versions can import PDF directly, so try Import first.\n\n'
+    + '  2.  Otherwise open it in Adobe Acrobat Reader and print to the laser,\n'
+    + '      with Size set to "Actual size" (never "Fit"). Page '+w+' × '+h+' mm.\n\n'
+    + 'Do NOT print this from the browser — that is the path that engraves\n'
+    + 'instead of cutting.'
+    + (skipped ? '\n\nNote: '+skipped+' photo or text item'+(skipped===1?' was':'s were')
+        + ' left out, as neither can be a cut line.' : '')
+    + (cal!==1 ? '\n\nThis file is '+((cal-1)*100).toFixed(2)+'% '+(cal>1?'bigger':'smaller')
+        + ' on purpose, to correct your measured\nsize check. Do not "fix" it.' : ''));
+}
+
+/* ================= cut-ready EMF ================= */
+// This is the good one, where the Universal software will take it.
+//
+// An EMF is not a picture. It is a *recording of Windows GDI drawing calls* —
+// the literal commands, replayed into whatever device opens it. That matters
+// here because of how the driver decides cut-versus-engrave: it looks at the
+// pen each line was drawn with. A GDI pen is either GEOMETRIC, which has a real
+// width in logical units, or COSMETIC, which has no width at all and always
+// draws one device dot wide. Cosmetic is what the driver reads as "this is a
+// vector, cut it". Everything else gets rastered and engraved.
+//
+// That single distinction is the whole story of this bug. Chrome rasterises the
+// page, so there are no pens left at all. Even Inkscape fails on these machines,
+// because the Cairo layer it prints through strokes with geometric pens — it had
+// to add a separate Win32 Vector Print extension calling GDI32 directly to work
+// around it. Illustrator and CorelDRAW work because they deliberately emit
+// cosmetic pens for hairlines.
+//
+// Writing the EMF ourselves skips every one of those layers. We emit the
+// cosmetic pens directly, so the file says "cut" in the only vocabulary the
+// driver actually listens to — and it imports without being printed at all, so
+// nothing in between gets the chance to rescale it.
+//
+// An EMF that "does nothing" on import is almost always one that wraps a bitmap
+// (an EMR_STRETCHDIBITS record and little else), which is what most "save as
+// EMF" buttons produce. There is no geometry in such a file to cut.
+const EMF_UPMM = 100;               // logical units per mm, so 1 unit = 0.01 mm
+
+// COLORREF is 0x00BBGGRR — byte order reversed from the hex you would expect.
+const colorref = hex => {
+  const [r,g,b] = rgbOf(hex);
+  return ((b<<16) | (g<<8) | r) >>> 0;
+};
+
+function emfWriter(){
+  let ab = new ArrayBuffer(65536), u8 = new Uint8Array(ab), dv = new DataView(ab), len = 0;
+  const grow = n => {
+    if(len+n <= ab.byteLength) return;
+    let cap = ab.byteLength; while(cap < len+n) cap *= 2;
+    const nb = new ArrayBuffer(cap), n8 = new Uint8Array(nb);
+    n8.set(u8.subarray(0,len)); ab = nb; u8 = n8; dv = new DataView(nb);
+  };
+  return {
+    u32(v){ grow(4); dv.setUint32(len, v>>>0, true); len += 4; return this; },
+    i32(v){ grow(4); dv.setInt32(len, v|0, true);    len += 4; return this; },
+    u16(v){ grow(2); dv.setUint16(len, v & 0xffff, true); len += 2; return this; },
+    at(){ return len; },
+    patch32(off, v){ dv.setUint32(off, v>>>0, true); },
+    patch16(off, v){ dv.setUint16(off, v & 0xffff, true); },
+    done(){ return u8.slice(0, len); }
+  };
+}
+
+// layers: [{ hex, fill, shapes:[{polys:[[{x,y}..]..], evenOdd}] }], mm coordinates.
+// One shape is one element from the design, and its polys are its subpaths — the
+// grouping has to survive this far, because a filled shape's hole is only a hole
+// when it is filled in the same operation as its outline.
+function buildEmf(pageW, pageH, layers){
+  const W = Math.round(pageW*EMF_UPMM), H = Math.round(pageH*EMF_UPMM);
+  const w = emfWriter();
+  let records = 0, handle = 1;
+
+  // --- EMR_HEADER, the 88-byte base form ---
+  w.u32(1).u32(88);
+  w.i32(0).i32(0).i32(W).i32(H);          // rclBounds, in device units
+  w.i32(0).i32(0).i32(W).i32(H);          // rclFrame, in 0.01 mm — same numbers,
+                                          // which is what pins one unit to 0.01 mm
+  w.u32(0x464D4520);                      // signature " EMF"
+  w.u32(0x00010000);                      // version
+  const atBytes = w.at(); w.u32(0);       // nBytes    — patched once the size is known
+  const atRecs  = w.at(); w.u32(0);       // nRecords  — likewise
+  const atHand  = w.at(); w.u16(0); w.u16(0);   // nHandles, sReserved
+  w.u32(0).u32(0);                        // nDescription, offDescription
+  w.u32(0);                               // nPalEntries
+  // A fixed reference device rather than the page, so the units-per-mm ratio is
+  // exact. Deriving it from the page meant rounding the page to whole
+  // millimetres, and a 150.5 mm page then declared itself 151 mm — a silent
+  // third of a percent of scale error, which is the one thing this tool exists
+  // to stop. 100000 px over 1000 mm is exactly the 100 units per mm used above.
+  w.i32(100000).i32(100000);              // szlDevice, in pixels
+  w.i32(1000).i32(1000);                  // szlMillimeters
+  records++;
+
+  const bounds = pts => {
+    let x0=Infinity, y0=Infinity, x1=-Infinity, y1=-Infinity;
+    for(const p of pts){
+      if(p.x<x0)x0=p.x; if(p.y<y0)y0=p.y; if(p.x>x1)x1=p.x; if(p.y>y1)y1=p.y;
+    }
+    return [x0,y0,x1,y1];
+  };
+  const poly = (type, pts) => {
+    const [x0,y0,x1,y1] = bounds(pts);
+    w.u32(type).u32(28 + 8*pts.length);
+    w.i32(x0).i32(y0).i32(x1).i32(y1);
+    w.u32(pts.length);
+    for(const p of pts){ w.i32(p.x).i32(p.y); }
+    records++;
+  };
+  // EMR_POLYPOLYGON: every subpath of one shape filled as a single region, so a
+  // hole stays a hole. Filling each subpath on its own instead turns the counter
+  // of an engraved "O" into solid black -- burnt in, slowly, and wrong.
+  const polypolygon = shape => {
+    const all = shape.polys;
+    const cptl = all.reduce((n,p)=>n+p.length, 0);
+    const [x0,y0,x1,y1] = bounds([].concat(...all));
+    w.u32(8).u32(32 + 4*all.length + 8*cptl);
+    w.i32(x0).i32(y0).i32(x1).i32(y1);
+    w.u32(all.length).u32(cptl);
+    for(const p of all) w.u32(p.length);
+    for(const p of all) for(const q of p){ w.i32(q.x).i32(q.y); }
+    records++;
+  };
+  const select = ih => { w.u32(37).u32(12).u32(ih); records++; };
+  const fillMode = m => { w.u32(19).u32(12).u32(m); records++; };
+
+  const NULL_PEN = 0x80000008, NULL_BRUSH = 0x80000005;   // GDI stock objects
+  const ALTERNATE = 1, WINDING = 2;
+  let drew = 0;
+
+  for(const L of layers){
+    if(!L.shapes.length) continue;
+    // To device units, once, here rather than in every record below.
+    const shapes = L.shapes.map(s => ({
+      evenOdd: s.evenOdd,
+      polys: s.polys.map(p => p.map(q => ({
+        x: Math.round(q.x*EMF_UPMM), y: Math.round(q.y*EMF_UPMM)
+      })))
+    }));
+
+    if(L.fill){
+      // Engraved area: a solid brush and no outline, so the driver rasters the
+      // inside of the shape and does not also track its edge.
+      w.u32(39).u32(24).u32(handle);        // EMR_CREATEBRUSHINDIRECT
+      w.u32(0);                             // BS_SOLID
+      w.u32(colorref(L.hex));
+      w.u32(0);                             // lbHatch
+      records++;
+      select(handle); handle++;
+      select(NULL_PEN);
+      let mode = null;
+      for(const s of shapes){
+        // SVG's default fill-rule is nonzero, which GDI calls WINDING.
+        const want = s.evenOdd ? ALTERNATE : WINDING;
+        if(want !== mode){ fillMode(want); mode = want; }
+        polypolygon(s); drew++;
+      }
+    } else {
+      // EMR_CREATEPEN with a width of zero. Zero is the whole point: it makes
+      // the pen cosmetic, and cosmetic is the only thing the driver cuts.
+      w.u32(38).u32(28).u32(handle);
+      w.u32(0);                             // PS_SOLID | PS_COSMETIC
+      w.i32(0).i32(0);                      // lopnWidth = 0
+      w.u32(colorref(L.hex));
+      records++;
+      select(handle); handle++;
+      select(NULL_BRUSH);
+      for(const s of shapes) for(const p of s.polys){ poly(4, p); drew++; }
+    }
+  }
+  if(!drew) return null;                    // nothing survived — say so, don't ship an empty file
+
+  w.u32(14).u32(20).u32(0).u32(16).u32(20); // EMR_EOF
+  records++;
+
+  const bytes = w.at();
+  w.patch32(atBytes, bytes);
+  w.patch32(atRecs, records);
+  w.patch16(atHand, handle);                // one past the highest handle used
+  return w.done();
+}
+
+function exportEMF(){
+  const g = collectGeometry();
+  const { lay, skipped, w, h, cal } = g;
+  if(!exportReady(g,'Save')) return;
+
+  // Closed loops have to be closed explicitly: a GDI polyline draws the points
+  // it is given and nothing more, so without repeating the first point at the
+  // end every shape would be cut all but one segment of the way round.
+  // One record in, one shape out — the subpaths stay grouped, which is what
+  // lets a filled shape keep its holes.
+  const toShapes = recs => recs.map(r => ({
+    evenOdd: !!r.evenOdd,
+    polys: r.subs.map(raw => {
+      const p = simplify(raw);
+      if(p.length < 2) return null;
+      const last = p[p.length-1];
+      if(Math.hypot(p[0].x-last.x, p[0].y-last.y) < FLAT_MM*1.6) p[p.length-1] = p[0];
+      return p;
+    }).filter(Boolean)
+  })).filter(s => s.polys.length);
+
+  const bytes = buildEmf(w, h, [
+    { hex:OPS.engrave.pen, shapes:toShapes(lay.engF), fill:true  },
+    { hex:OPS.engrave.pen, shapes:toShapes(lay.engS), fill:false },
+    { hex:OPS.score.pen,   shapes:toShapes(lay.score), fill:false },
+    { hex:OPS.cut.pen,     shapes:toShapes(lay.cut),   fill:false }
+  ]);
+  if(!bytes){
+    alert('Nothing could be written to the EMF.\n\nEvery shape came out too small to '
+        + 'draw — check the size settings, then try again.');
+    return;
+  }
+
+  const fn = saveFile(bytes, 'image/x-emf', `${safeName(jobName())}-CUT-${w}x${h}mm.emf`);
+
+  alert('Saved: '+fn+'\n\n'
+    + 'This is a real vector EMF: every cut and score line is drawn with a\n'
+    + 'cosmetic (zero-width) GDI pen in pure pen colour, which is exactly what\n'
+    + 'the Universal driver reads as "cut" rather than "engrave".\n\n'
+    + 'At the laser PC: open the Universal software and use Import / Direct\n'
+    + 'File Import on this file. Page size '+w+' × '+h+' mm.\n\n'
+    + 'If an EMF you tried before imported and did nothing, it was almost\n'
+    + 'certainly a bitmap wrapped in an EMF wrapper — there was no geometry\n'
+    + 'in it to cut. This one contains the lines themselves.'
+    + (skipped ? '\n\nNote: '+skipped+' photo or text item'+(skipped===1?' was':'s were')
+        + ' left out, as neither can be a cut line.' : '')
+    + (cal!==1 ? '\n\nThis file is '+((cal-1)*100).toFixed(2)+'% '+(cal>1?'bigger':'smaller')
+        + ' on purpose, to correct your measured\nsize check. Do not "fix" it.' : ''));
+}
+
+// Universal's software is a Windows print driver, so the laser is a printer and
+// the browser can in principle drive it directly. In practice Chrome rasterises
+// the page on the way out, the driver sees a bitmap instead of strokes, and the
+// job engraves instead of cutting. Kept because it costs nothing and some
+// machine-and-driver combinations may still do the right thing — but the PDF
+// above is the path that actually works, so this one now says so first.
 function sendToLaser(){
   const bad = S.warnings.filter(w=>w.level==='bad');
   if(bad.length && !confirm('This design still has '+bad.length+' problem'+(bad.length===1?'':'s')
@@ -1796,7 +2395,16 @@ function sendToLaser(){
   const w = round(pageW), h = round(pageH);
 
   if(!confirm(
-    'The print window is about to open. Three settings decide whether this comes out\n'
+    'WARNING — this is the path that engraves instead of cutting.\n\n'
+   +'Chrome sends the driver a picture of the page rather than the lines\n'
+   +'themselves. The driver measures stroke width to decide cut-versus-\n'
+   +'engrave, finds no strokes in a picture, and rasters the lot — the job\n'
+   +'goes over and over the same line and never cuts through.\n\n'
+   +'Use "Save cut-ready PDF" instead, then import that PDF in the Universal\n'
+   +'software or print it from Acrobat Reader.\n\n'
+   +'Carry on only if you want to test whether this machine is an exception.\n\n'
+   +'---\n\n'
+   +'Three settings decide whether this comes out\n'
    +'the right size — get them wrong and everything shrinks by a few percent:\n\n'
    +'  1.  Destination:  the Universal laser, NOT a paper printer\n'
    +'  2.  Scale:        Custom, 100   (never "Fit to printable area")\n'
@@ -1873,6 +2481,16 @@ function printSheet(){
       again as a red hairline on the same outline so the part is cut free. It is not a doubled-up
       line. The black pass must run before the red one, as below.</div>`:''}
     <div class="box">
+      <strong>Getting this job to the machine.</strong> Use the <strong>cut-ready EMF</strong>: open the
+      Universal software and import it (Import / Direct File Import). Every cut and score line in it is
+      drawn with a cosmetic zero-width pen, which is what the driver reads as "cut". If your version
+      will not take an EMF, use the <strong>cut-ready PDF</strong> instead — either import that, or open
+      it in Adobe Acrobat Reader and print with Size set to <strong>Actual size</strong>.
+      Do <strong>not</strong> print from a web browser: the browser sends a picture of the page rather
+      than the lines, the driver has no stroke widths left to measure, and the whole job comes out
+      engraved — going over and over the same line without ever cutting through.
+    </div>
+    <div class="box">
       <strong>In the Universal driver:</strong> set the page size to
       ${round(pageW)} × ${round(pageH)} mm and take the artwork at 100% — never "fit to page",
       "fit to printable area" or "scale to fit", or the whole job comes out a few percent small.
@@ -1880,7 +2498,8 @@ function printSheet(){
       last, so the piece does not come loose and shift mid-job.
     </div>
     ${(S.cal.on&&fitsCal)||cal!==1?`<div class="box"><strong>Size check.</strong>
-      ${S.cal.on&&fitsCal?`A 100 mm square sits in the bottom-left corner of the sheet${cal!==1?` (sent as ${round(CAL_MM*cal)} mm)`:''}.
+      ${S.cal.on&&fitsCal?`A 100 mm square sits at ${round(calBox().x)}, ${round(calBox().y)} mm from the
+      top-left of the sheet${cal!==1?` (sent as ${round(CAL_MM*cal)} mm)`:''}.
       Measure it after the cut: it should come back <strong>100.0 mm</strong>. `:''}
       ${cal!==1?`This file has been scaled <strong>${((cal-1)*100).toFixed(2)}%</strong> to correct for a
       measured ${round(S.cal.meas)} mm on a 100 mm square. Every dimension on this sheet is the
@@ -2085,8 +2704,41 @@ document.querySelectorAll('.setall button').forEach(b=>{
   };
 });
 
-$('calOn').onchange = ()=>{ S.cal.on = $('calOn').checked; refresh(); };
+// The exports, the stage and the Size check panel come alive for EITHER a loaded
+// design or the check square on its own. Calibrating is the first thing you do on
+// a machine you do not trust, and it should never have needed a student's artwork
+// loaded underneath it just to put a square on the sheet.
+function syncLive(){
+  const live = liveJob();
+  ['emf','pdf','toLaser','dl','print'].forEach(id=>{ $(id).disabled = !live; });
+  $('empty').hidden = live;
+  $('key').hidden = !live;
+  $('secCal').hidden = !live;
+  $('secChecks').hidden = !live;
+  $('tCal').setAttribute('aria-pressed', S.cal.on ? 'true' : 'false');
+  $('calOn').checked = S.cal.on;
+}
+
+function setCal(on){
+  S.cal.on = !!on;
+  // A square-only job still gets a code, so the sheet and the PDF can be traced
+  // back to it like any other.
+  if(S.cal.on && !S.jobCode) S.jobCode = rnd4()+'-'+rnd4();
+  // Switching it on with nothing loaded makes the square the entire job, so the
+  // view has to reframe around the bed rather than artwork that is not there.
+  if(!S.loaded) S.view = null;
+  syncLive();
+  if(liveJob()) refresh();
+  else {
+    $('stagewrap').querySelectorAll('svg').forEach(n=>n.remove());
+    setHud(null, null);
+  }
+}
+$('tCal').onclick    = ()=> setCal(!S.cal.on);
+$('calOn').onchange  = ()=> setCal($('calOn').checked);
 $('calMeas').oninput = ()=>{ S.cal.meas = +$('calMeas').value || 100; refresh(); };
+// Park it back in the corner if it has been dragged somewhere silly.
+$('calHome').onclick = ()=>{ S.cal.x = 10; S.cal.y = null; refresh(); };
 
 function syncCalNote(){
   const m = +S.cal.meas, f = calFactor();
@@ -2117,6 +2769,8 @@ $('mat').oninput = refresh;
 $('toLaser').onclick = sendToLaser;
 $('dl').onclick = download;
 $('print').onclick = printSheet;
+$('pdf').onclick = () => withBusy($('pdf'), 'Working…', exportPDF);
+$('emf').onclick = () => withBusy($('emf'), 'Working…', exportEMF);
 $('reset').onclick = ()=>location.reload();
 </script>
 </body>

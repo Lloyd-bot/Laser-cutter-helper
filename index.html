@@ -76,6 +76,11 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 .btn.acc{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
 .btn.acc:hover{filter:brightness(1.08);background:var(--acc)}
 .btn.ghost{background:none}
+/* The page now opens with an empty bed and nothing to send, so "disabled" has
+   to look it — a bright red Send button that does nothing is worse than none. */
+.btn:disabled{opacity:.4;cursor:default;filter:saturate(.25)}
+.btn:disabled:hover{border-color:var(--line);background:var(--panel2)}
+.btn.acc:disabled:hover{background:var(--acc)}
 
 /* card-style segmented (Baseplate-Type look) */
 .cards{display:grid;gap:5px}
@@ -104,9 +109,22 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
 input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--acc);
   cursor:pointer;border:2px solid var(--panel)}
 /* trace panel */
+.trclr{background:none;border:0;color:var(--acc);font:600 10px ui-sans-serif,sans-serif;
+  cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px}
+.trwrap canvas{cursor:crosshair;touch-action:none}
 .trwrap{background:#15181f;border:1px solid var(--line);border-radius:7px;padding:6px;
   margin-bottom:12px;display:grid;place-items:center;min-height:56px}
 .trwrap canvas{max-width:100%;max-height:132px;border-radius:3px;display:block}
+/* Cropping on a 130-pixel thumbnail is a guess. This is the same job done on
+   the whole canvas, where the picture is big enough to see what you are cutting. */
+.cropo{position:absolute;inset:0;z-index:7;background:rgba(8,10,14,.94);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;padding:20px}
+.cropo canvas{border:1px solid var(--line2);border-radius:5px;cursor:crosshair;
+  touch-action:none;background:#fff;display:block}
+.cropo .bar{display:flex;gap:9px}
+.cropo .bar .btn{width:auto;padding:8px 18px}
+.cropo p{margin:0;color:var(--dim);font-size:12px;text-align:center;max-width:620px}
+.cropo p b{color:var(--ink)}
 .trrow{display:flex;justify-content:space-between;align-items:baseline}
 .trrow em{font-style:normal;color:var(--dim2);font-size:10px;letter-spacing:0;text-transform:none}
 .trmsg{font-size:11px;line-height:1.45;color:#f5c268;background:#2e2410;border:1px solid #5c4a1d;
@@ -157,15 +175,38 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     linear-gradient(rgba(248,72,94,.10) 1px,transparent 1px),
     linear-gradient(90deg,rgba(248,72,94,.10) 1px,transparent 1px);
   background-size:22px 22px,22px 22px,110px 110px,110px 110px}
-.stagewrap{position:absolute;inset:0;display:grid;place-items:center;padding:52px 34px 46px}
+.stagewrap{position:absolute;inset:0;display:grid;place-items:center;padding:52px 34px 46px 62px}
+/* The drawing tools live down the left edge, against the options panel, where
+   every other drawing program puts them and where the hand already is. */
+.rail{position:absolute;left:10px;top:50%;transform:translateY(-50%);z-index:4;
+  display:flex;flex-direction:column;background:var(--sunk);
+  border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.rail button{border:none;background:none;color:var(--dim);padding:9px 10px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--line);
+  position:relative}
+.rail button:last-child{border-bottom:none}
+.rail button:hover:not(:disabled){color:var(--ink);background:#141821}
+.rail button[aria-pressed=true]{background:var(--accd);color:var(--acc)}
+.rail button:disabled{opacity:.3;cursor:default}
+.rail button svg{width:15px;height:15px;display:block}
+.rail hr{border:none;border-top:1px solid var(--line2);margin:0}
+/* On a short laptop screen the centred rail would hang off both ends. */
+@media (max-height:640px){ .rail{top:52px;transform:none} }
 #view{max-width:100%;max-height:100%;touch-action:none;user-select:none}
 #view.dragging{cursor:grabbing}
 .hud{position:absolute;top:13px;left:16px;font-size:11px;color:var(--dim);
   display:flex;gap:16px;pointer-events:none}
 .hud b{color:var(--ink);font-weight:600}
-.key{position:absolute;bottom:13px;left:16px;display:flex;gap:14px;font-size:11px;color:var(--dim)}
+.key{position:absolute;bottom:13px;left:16px;display:flex;gap:14px;font-size:11px;color:var(--dim);
+  max-width:calc(100% - 300px);overflow:hidden;white-space:nowrap}
 .key em{font-style:normal;color:var(--dim2);margin-left:4px}
 .key i{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:5px;vertical-align:-1px}
+/* SketchUp's value box: reads out the gesture, then takes a typed answer. */
+.dimbox{position:absolute;right:16px;bottom:13px;display:flex;align-items:center;gap:9px;
+  background:var(--panel);border:1px solid var(--line2);border-radius:7px;padding:6px 10px;z-index:4}
+.dimbox>span{font:600 12px ui-sans-serif,sans-serif;color:var(--ink);white-space:nowrap}
+.dimbox input{width:124px;padding:4px 8px;border-radius:5px;font-variant-numeric:tabular-nums}
+.dimbox em{font-style:normal;color:var(--dim2);font-size:10px;white-space:nowrap}
 .empty{text-align:center;color:var(--dim2);max-width:300px}
 .empty svg{width:40px;height:40px;opacity:.3;margin-bottom:12px}
 
@@ -213,12 +254,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   <div class="seg">
     <button id="tGrid" aria-pressed="true" title="Grid"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2 6h12M2 10h12M6 2v12M10 2v12"/></svg></button>
     <button id="tRule" aria-pressed="true" title="Bed outline"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-dasharray="2.5 2"><rect x="2.5" y="3.5" width="11" height="9"/></svg></button>
-  </div>
-  <div class="seg">
-    <button id="tCal" aria-pressed="false" title="100 mm size-check square. Works on its own with no design loaded — cut it on scrap, measure it, then correct the scale. Drag it anywhere on the bed.">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2.5" y="2.5" width="11" height="11"/><path d="M2.5 5.5h2M2.5 8h2M2.5 10.5h2"/></svg>
-      <b style="font:700 10px ui-sans-serif,sans-serif;margin-left:4px">100</b>
-    </button>
+    <button id="tSnap" aria-pressed="true" title="Snapping — the pointer catches on corners, midpoints, centres, the bed and any guides. Hold Alt to let it go free.">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3.5 2.5v6a4.5 4.5 0 0 0 9 0v-6"/><path d="M3.5 6.5h3M9.5 6.5h3"/></svg></button>
   </div>
   <div class="seg" id="zoomSeg">
     <button id="zOut" title="Zoom out (−)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3.5 8h9"/></svg></button>
@@ -234,10 +271,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
   <aside class="side">
     <div class="scroll">
       <div class="intro">
-        <h1>Artwork → Universal laser</h1>
-        <p>Drop in <b>any picture</b> &mdash; PNG, JPG, a screenshot, a photo of a drawing &mdash; and it gets traced into cut lines. Already have a vector file? Drop the <b>SVG</b> instead and it skips tracing. Either way: set the real size, say what each colour should do, then <b>save the cut-ready EMF</b> and import that in the Universal software &mdash; no Illustrator in between. Runs entirely in your browser.</p>
-        <p class="sub" style="margin-top:7px">Just calibrating? Hit the <b style="color:var(--ink)">100</b> button
-          at the top. The check square is a job on its own and needs no design loaded.</p>
+        <h1>Draw it, or drop a design on it</h1>
+        <p>The bed is already there: pick a tool on the left and <b>draw straight onto it</b> in real millimetres.
+        Or drop in <b>any picture</b> &mdash; PNG, JPG, a photo of a drawing &mdash; and it gets traced into cut lines,
+        or an <b>SVG</b>, which skips tracing. Then say what each colour should do and
+        <b>send it to the laser</b>: the job goes to the driver as real cut lines, with no Illustrator in between.
+        Runs entirely in your browser.</p>
       </div>
 
       <div class="sec">
@@ -254,7 +293,13 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 
       <div class="sec" id="secTrace" hidden>
         <h2>Trace <b id="trCount"></b></h2>
-        <div class="trwrap"><canvas id="trCv"></canvas></div>
+        <label class="lbl trrow"><span>Picture</span>
+          <em id="cropNote" style="color:var(--dim);font-size:11px">all of it</em></label>
+        <div class="trwrap"><canvas id="trCv" title="Click to crop this picture"></canvas></div>
+        <div class="grid2" style="margin:8px 0 11px">
+          <button class="btn" id="cropOpen">Crop the picture</button>
+          <button class="btn ghost" id="cropOff" hidden>Whole picture</button>
+        </div>
         <label class="lbl trrow"><span>Black / white cut-off</span><em id="thrVal">50</em></label>
         <input type="range" id="thr" min="2" max="98" step="1" value="50">
         <label class="lbl trrow" style="margin-top:10px"><span>Smoothing</span><em id="smVal">medium</em></label>
@@ -270,7 +315,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
           silhouettes and bold lettering — not on photographs.<br><br>
           Traced shapes start as <b style="color:var(--ink)">Cut</b>. To mark the surface
           without going through, change it to Score or Engrave under
-          <b style="color:var(--ink)">Colours</b> below.</p>
+          <b style="color:var(--ink)">Colours</b> below.<br><br>
+          Each separate piece comes out as its own shape, so you can
+          <b style="color:var(--ink)">click one in the preview and press Delete</b> to drop it —
+          that is how you keep the badge and lose the lettering, or the other way round. Two parts
+          the same colour can never be told apart by the cut-off alone; crop or delete instead.</p>
       </div>
 
       <div class="sec" id="secMachine">
@@ -343,24 +392,101 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
           traced artwork with no clean outline of its own — it is guaranteed to close, so the piece drops out.</p>
       </div>
 
-      <div class="sec" id="secCal" hidden>
-        <h2>Size check</h2>
-        <label style="display:flex;gap:7px;align-items:center;font-size:12px;cursor:pointer">
-          <input type="checkbox" id="calOn" style="width:auto;padding:0"> Add a 100 mm check square
+      <div class="sec" id="secDraw">
+        <h2>Draw</h2>
+        <label class="lbl">Text</label>
+        <input type="text" id="txtVal" placeholder="A name, a word, a number" autocomplete="off">
+        <div class="grid2" style="margin-top:7px">
+          <div class="fieldwrap"><input type="number" id="txtSize" value="20" min="2" step="1"><u>mm tall</u></div>
+          <select id="txtFont">
+            <option value="Arial, Helvetica, sans-serif">Arial</option>
+            <option value="'Segoe UI', system-ui, sans-serif">Segoe UI</option>
+            <option value="Georgia, serif">Georgia</option>
+            <option value="'Times New Roman', serif">Times</option>
+            <option value="Impact, sans-serif">Impact</option>
+            <option value="'Courier New', monospace">Courier</option>
+            <option value="'Comic Sans MS', cursive">Comic Sans</option>
+          </select>
+        </div>
+        <label style="display:flex;gap:7px;align-items:center;margin-top:8px;font-size:12px;cursor:pointer">
+          <input type="checkbox" id="txtBold" style="width:auto;padding:0"> Bold
         </label>
-        <p class="sub">A plain 100 mm square in cut red. <b style="color:var(--ink)">Drag it anywhere on the bed</b>
-          in the preview, so it lands on a corner of the offcut actually in the machine. It needs no design
-          loaded — the <b style="color:var(--ink)">100</b> button at the top switches it on by itself, and on
-          its own it is the whole job.</p>
-        <button class="btn" id="calHome" style="margin-top:7px">Park it back in the corner</button>
-        <label class="lbl" style="margin-top:11px">It actually measured</label>
-        <div class="fieldwrap"><input type="number" id="calMeas" min="50" max="200" step="0.1" value="100"><u>mm</u></div>
-        <p class="sub" id="calNote">Leave at 100 until you have measured one.</p>
-        <p class="sub">Measure the cut square edge to edge and type what you got. Everything exported after
-          that is stretched to compensate, so the millimetres on screen are the millimetres on the material.
-          A few percent out is normal and almost always a <b style="color:var(--ink)">“fit to page”</b> or
-          <b style="color:var(--ink)">“scale to fit”</b> setting somewhere between here and the laser —
-          worth hunting down, but this corrects for it either way.</p>
+        <button class="btn acc" id="txtAdd" style="margin-top:8px">Put the text on the bed</button>
+        <p class="sub">Real closed outlines, traced from the font on this PC — holes in the letters and all.
+          It arrives set to <b style="color:var(--ink)">engrave</b>; switch it to Cut if the letters are meant
+          to drop out. Move, size and recolour it like any other shape.</p>
+        <label class="lbl" style="margin-top:12px">Polygon</label>
+        <div class="fieldwrap"><input type="number" id="polyN" value="6" min="3" max="24" step="1"><u>sides</u></div>
+        <p class="sub">How many sides the polygon tool draws.</p>
+      </div>
+
+      <div class="sec" id="secSel" hidden>
+        <h2>Selection <b id="selCount"></b></h2>
+        <p class="sub" id="selWhat"></p>
+        <label class="lbl" id="selOpsLbl" style="margin-top:9px">These shapes should</label>
+        <div class="cards c4" id="selOps"></div>
+        <div id="selDims" hidden>
+          <label class="lbl" style="margin-top:11px">Exact numbers</label>
+          <div class="grid2">
+            <div class="fieldwrap"><input type="number" id="selX" step="0.5"><u>x mm</u></div>
+            <div class="fieldwrap"><input type="number" id="selY" step="0.5"><u>y mm</u></div>
+          </div>
+          <div class="grid2" style="margin-top:6px">
+            <div class="fieldwrap"><input type="number" id="selW" step="0.5" min="0.1"><u id="selWU">w mm</u></div>
+            <div class="fieldwrap"><input type="number" id="selH" step="0.5"><u id="selHU">h mm</u></div>
+          </div>
+        </div>
+        <div id="selTools" hidden>
+          <label class="lbl" style="margin-top:12px">Shape tools</label>
+          <div class="grid3">
+            <button class="btn" id="selFlipX" title="Mirror left to right, about the middle of what is selected">Flip &#8596;</button>
+            <button class="btn" id="selFlipY" title="Mirror top to bottom">Flip &#8597;</button>
+            <button class="btn" id="selRot" title="Turn a quarter turn clockwise">Turn 90&deg;</button>
+          </div>
+          <div class="grid2" style="margin-top:6px">
+            <div class="fieldwrap"><input type="number" id="selScaleV" value="100" min="1" max="2000" step="5"><u>%</u></div>
+            <button class="btn" id="selScaleGo">Scale</button>
+          </div>
+          <div class="grid2" style="margin-top:6px">
+            <div class="fieldwrap"><input type="number" id="selCornerV" value="3" min="0.2" step="0.5"><u>corner mm</u></div>
+            <div class="grid2" style="gap:6px">
+              <button class="btn" id="selRound" title="Round every corner by that radius">Round</button>
+              <button class="btn" id="selChamf" title="Cut every corner off at that distance">Chamfer</button>
+            </div>
+          </div>
+          <div class="grid2" style="margin-top:6px">
+            <div class="fieldwrap"><input type="number" id="selOffV" value="2" min="0.1" step="0.5"><u>offset mm</u></div>
+            <div class="grid2" style="gap:6px">
+              <button class="btn" id="selOut" title="Push the outline outwards">Grow</button>
+              <button class="btn" id="selIn" title="Pull the outline inwards">Shrink</button>
+            </div>
+          </div>
+          <div class="grid2" style="margin-top:6px">
+            <button class="btn" id="selGrp" title="Ctrl-G — these shapes travel together from now on">Group</button>
+            <button class="btn" id="selUngrp" title="Ctrl-Shift-G">Ungroup</button>
+          </div>
+          <p class="sub">Rounding, chamfering, growing and turning at anything but a right angle bake a shape
+            down to a plain outline, which is what a traced piece already is. Growing a shape with deep
+            notches can tie a loop in itself &mdash; look at the preview before you cut it.</p>
+        </div>
+        <div class="grid3" style="margin-top:10px">
+          <button class="btn" id="selDup">Duplicate</button>
+          <button class="btn" id="selDel">Delete</button>
+          <button class="btn" id="selNone">Deselect</button>
+        </div>
+        <p class="sub" style="margin-top:9px">Type a size straight onto the stage, or in the fields above.
+          Drag a selected shape to move it; arrow keys nudge by 1 mm, with Shift by 5 mm.
+          <b style="color:var(--ink)">Del</b> removes it, <b style="color:var(--ink)">Ctrl&#8209;Z</b> undoes.
+          An operation set here overrides the colour it came in as.</p>
+      </div>
+
+      <div class="sec" id="secGuides" hidden>
+        <h2>Guides <b id="guideCount"></b></h2>
+        <p class="sub">Left behind by the tape measure. They are scaffolding, not part of the job —
+          the laser never sees them and they are in no export.
+          Click one with the Select tool to pick it out, then <b style="color:var(--ink)">Del</b>
+          — or clear the lot.</p>
+        <button class="btn" id="guideClear" style="margin-top:8px">Clear all guides</button>
       </div>
 
       <div class="sec" id="secColours" hidden>
@@ -393,17 +519,30 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
     </div>
 
     <div class="foot">
-      <button class="btn acc" id="emf" disabled>
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 2v8m0 0 3-3m-3 3L5 7M2.5 12.5h11"/></svg>
-        Save cut-ready EMF</button>
-      <p class="sub" style="margin:-2px 0 6px">Import this one in the Universal software. The PDF below is
-        the fallback if your version will not take it.</p>
-      <button class="btn" id="pdf" disabled>
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 2v8m0 0 3-3m-3 3L5 7M2.5 12.5h11"/></svg>
-        Save cut-ready PDF</button>
+      <button class="btn acc" id="lpj" disabled>
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 8h9m0 0-3-3m3 3-3 3"/><path d="M13.5 2.5v11"/></svg>
+        Send to the laser</button>
+      <p class="sub" style="margin:-2px 0 6px">Saves the job, then run <b style="color:var(--ink)">print&#8209;to&#8209;laser.ps1</b>
+        at the laser PC. That sends real cut lines straight to the driver &mdash; no Illustrator.</p>
+      <button class="btn ghost" id="getPs1" style="margin:-2px 0 6px">Save print&#8209;to&#8209;laser.ps1</button>
+      <button class="btn ghost" id="getCmd" style="margin:-2px 0 6px">Save it as a double&#8209;click file (.cmd)</button>
+      <p class="sub" style="margin:-2px 0 6px">Same bridge, one file, no typing &mdash; for a PC that refuses to
+        run a .ps1 at all.</p>
       <button class="btn" id="dl" disabled>
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 10.5 8 5.5l5 5"/><path d="M2.5 13.5h11"/></svg>
         Download SVG</button>
+      <p class="sub" style="margin:-2px 0 6px">The Illustrator route, for when you want it: open this, print from there.</p>
+      <details style="margin:0 0 6px">
+        <summary class="sub" style="cursor:pointer">Import files (EMF / PDF)</summary>
+        <button class="btn" id="emf" disabled style="margin-top:6px">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 2v8m0 0 3-3m-3 3L5 7M2.5 12.5h11"/></svg>
+          Save cut-ready EMF</button>
+        <button class="btn" id="pdf" disabled>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 2v8m0 0 3-3m-3 3L5 7M2.5 12.5h11"/></svg>
+          Save cut-ready PDF</button>
+        <p class="sub" style="margin:4px 0 0">Real vectors, for Direct File Import. Worth a try on another machine,
+          but the VLS4.60 here imports them and does nothing.</p>
+      </details>
       <button class="btn" id="print" disabled>Print job sheet</button>
       <button class="btn ghost" id="toLaser" disabled style="margin-top:6px">Print to the laser (engraves — see warning)</button>
     </div>
@@ -411,18 +550,53 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 
   <main class="main">
     <div class="gridbg" id="gridbg"></div>
-    <div class="hud" id="hud"></div>
-    <div class="stagewrap" id="stagewrap">
-      <div class="empty" id="empty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 15l5-5 4 4 3-3 6 6"/></svg>
-        <div>No design loaded.<br>Drop a picture or an SVG into the panel on the left, or paste one with Ctrl&#8209;V.</div>
+    <div class="cropo" id="cropOverlay" hidden>
+      <p><b>Drag a box</b> over the part you want to trace. Drag inside the box to move it,
+        or a corner to resize it. Everything outside is thrown away.</p>
+      <canvas id="cropCv"></canvas>
+      <div class="bar">
+        <button class="btn acc" id="cropUse">Use this part</button>
+        <button class="btn" id="cropAll">Whole picture</button>
+        <button class="btn ghost" id="cropCancel">Cancel</button>
       </div>
     </div>
-    <div class="key" id="key" hidden>
+    <div class="rail" id="toolRail">
+      <button data-tool="select" aria-pressed="true" title="Select  (V) — click a shape, shift-click to add, drag a box round several. Drag a selected shape to move it. Escape comes back here from any tool.">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 2l9 5.5-3.9.9L6.4 13z"/></svg></button>
+      <button data-tool="pan" aria-pressed="false" title="Pan the view  (H) — or hold Space, or drag with the middle button">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 2v12M2 8h12"/><path d="M5.5 4.5 8 2l2.5 2.5M5.5 11.5 8 14l2.5-2.5M4.5 5.5 2 8l2.5 2.5M11.5 5.5 14 8l-2.5 2.5"/></svg></button>
+      <hr>
+      <button data-tool="rect" aria-pressed="false" title="Rectangle  (R) — click a corner, click the far one. Type 40,25 and press Enter for an exact size.">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="4" width="11" height="8"/></svg></button>
+      <button data-tool="circle" aria-pressed="false" title="Circle  (C) — alignment holes, rounded tabs. Type a diameter and press Enter.">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><ellipse cx="8" cy="8" rx="5.5" ry="5.5"/></svg></button>
+      <button data-tool="line" aria-pressed="false" title="Line  (L) — score folds, cut-off guides. Type a length, or 60<30 for a length at an angle.">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2.5 13.5 13.5 2.5"/></svg></button>
+      <button data-tool="polygon" aria-pressed="false" title="Polygon  (P) — click the centre, then click to set the size and which way up it sits. Set the number of sides in the Draw panel.">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 2.2 13.5 5.6v6.8L8 15.8 2.5 12.4V5.6z"/></svg></button>
+      <button data-tool="arc" aria-pressed="false" title="Arc  (A) — click one end, click the other, then click to bend it. Type a radius for an exact curve.">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 12.5a6.5 6.5 0 0 1 12 0"/><path d="M2 12.5h12" stroke-dasharray="2 2" opacity=".45"/></svg></button>
+      <button id="railText" title="Text — type it in the Draw panel on the left and put it on the bed as real outlines.">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3.5h10M8 3.5v9M5.5 12.5h5"/></svg></button>
+      <hr>
+      <button data-tool="tape" aria-pressed="false" title="Tape measure  (T) — click two points for the distance between them. It leaves a guide the tools snap to; guides are never cut.">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1.5" y="4.5" width="13" height="7" rx="1.5"/><path d="M4 11.5v-2.2M6.5 11.5v-3.4M9 11.5v-2.2M11.5 11.5v-3.4"/></svg></button>
+      <hr>
+      <button id="railDel" disabled title="Delete what is selected  (Del)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button>
+    </div>
+    <div class="hud" id="hud"></div>
+    <div class="stagewrap" id="stagewrap"></div>
+    <div class="dimbox" id="dimbox" hidden>
+      <span id="dimLbl"></span>
+      <input type="text" id="dimIn" spellcheck="false" autocomplete="off" hidden>
+      <em id="dimHint"></em>
+    </div>
+    <div class="key" id="key">
       <span><i style="background:var(--cut)"></i>Cut</span>
       <span><i style="background:var(--score)"></i>Score</span>
       <span><i style="background:var(--engrave)"></i>Engrave</span>
-      <em>Scroll to zoom · drag the design to move it · drag the background to pan</em>
+      <em>Click, then click · type a size, Enter · Shift locks an axis · Alt frees the snap</em>
     </div>
   </main>
 </div>
@@ -437,23 +611,14 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 const NS = 'http://www.w3.org/2000/svg';
 const PX_PER_MM = 96/25.4;
 const HAIRLINE_MM = 0.01;          // Universal wants <= 0.025mm (0.001") for vector
-const CAL_MM = 100;                // side of the size-check square
-// 100 mm asked for, S.cal.meas delivered, so send everything this much bigger.
-// Clamped hard: a typo like 10 or 1000 would otherwise destroy a sheet of material.
-const calFactor = () => {
-  const m = +S.cal.meas;
-  return (m >= 50 && m <= 200 && Math.abs(m-100) > 0.05) ? 100/m : 1;
-};
-// The check square is a job in its own right. Calibrating is the FIRST thing you
-// do on a machine you do not trust yet, and before today that meant loading a
-// student's design you did not want to cut just to get the square onto the sheet.
-// It now stands alone, and it is draggable, so it can go on the corner of the
-// offcut actually sitting in the machine rather than wherever the code put it.
-// y === null means "never placed" -> park it bottom-left, clear of top-left artwork.
-const calY = () => S.cal.y==null ? Math.max(0, S.bed.h-CAL_MM-10) : S.cal.y;
-const calBox = () => ({ x:S.cal.x, y:calY(), w:CAL_MM, h:CAL_MM });
-// Is there anything at all to draw, check and send? Artwork, or just the square.
-const liveJob = () => S.loaded || S.cal.on;
+// Nothing rescales a job any anymore: what the preview says is what gets sent.
+// The number survives only because the .lpj carries it and the print bridge
+// reads it, and a bridge that still works matters more than one dead field.
+const CAL_FACTOR = 1;
+// The bed is on screen from the moment the page opens and can be drawn on with
+// nothing loaded, so "is there a job?" is now only about whether anything would
+// actually come out of the laser.
+const hasJob = () => S.loaded || S.drawn.length > 0;
 const DRAWABLE = 'path,rect,circle,ellipse,line,polyline,polygon,text,image,use';
 const NON_RENDER = new Set(['defs','clippath','mask','marker','pattern','symbol']);
 
@@ -502,14 +667,31 @@ const S = {
   view:null,                       // {cx,cy,zoom} — null means "fit the bed"
   tol:0,                           // merge tolerance for near-identical colours
   opChoice:{},                     // colour -> operation the student actually picked
-  trace:{ on:false, t:128, sm:6, sp:3, invert:false }, traceCount:0,
+  trace:{ on:false, t:128, sm:6, sp:3, invert:false, crop:null }, traceCount:0,
   outline:{ on:false, pad:4, r:3 },
-  // Size check. meas is what a cut 100 mm square really measured, so 100/meas is
-  // the factor the exported file has to be stretched by to land on true size.
-  cal:{ on:false, meas:100, x:10, y:null },
   show:{ cut:true, score:true, engrave:true }, grid:true, rule:true,
-  warnings:[], jobCode:''
+  material:'',
+  warnings:[], jobCode:'',
+  // --- editing ---------------------------------------------------------
+  // Operations started out per colour, which is right for a Canva design where
+  // colour IS the instruction. It falls apart the moment one shape out of forty
+  // needs to differ, and the only fix was to leave for Illustrator. A shape may
+  // now carry its own answer; item.op of null means "whatever my colour says".
+  sel:new Set(),          // selected items and drawn shapes
+  hover:null,             // what the pointer is over, with the Select tool
+  drawn:[],               // shapes made here, in page mm: rect|circle|line|poly
+  nextId:1,
+  tool:'select',          // select | pan | rect | circle | line | tape
+  undo:[],
+  // Measuring scaffolding, kept well away from S.drawn so that nothing which
+  // builds the job can pick it up by accident: {k:'p',x,y} or {k:'l',x,y,x2,y2}.
+  guides:[], snap:true,
+  polyN:6,                // sides for the polygon tool
+  nextGrp:1,              // group ids for shapes that travel together
+  polyRev:0               // bumped when a baked outline's points change, to drop its cached bounds
 };
+// A shape's own operation wins over its colour group's.
+const opFor = o => o.guide ? null : o.drawn ? o.op : (o.op || S.groups.get(o.colour).op);
 const $ = id => document.getElementById(id);
 const round = n => Math.round(n*10)/10;
 const el = (t,a) => { const n=document.createElementNS(NS,t); for(const k in a) n.setAttribute(k,a[k]); return n; };
@@ -627,7 +809,10 @@ function readImage(dataURL,name){
     TR.pW = Math.max(1,Math.round(im.naturalWidth*pk));
     TR.pH = Math.max(1,Math.round(im.naturalHeight*pk));
     TR.plum = lumFrom(im,TR.pW,TR.pH);
+    TR.img = im;                                 // the big crop view draws the real picture
     TR.name = (name||'traced').replace(/\.[a-z0-9]+$/i,'');
+    S.trace.crop = null;                         // a new picture, a fresh frame
+    syncCropUI();
 
     // Show the panel so the sliders are reachable even if this first trace finds
     // nothing. S.trace.on is deliberately not touched here -- load() sets it, so a
@@ -649,6 +834,19 @@ function readImage(dataURL,name){
   im.src = dataURL;
 }
 
+// The crop is held as fractions of the picture rather than pixels, because the
+// thumbnail and the real trace run at two different resolutions and both have
+// to agree about where the box is.
+function cropPix(W,H){
+  const c = S.trace.crop;
+  if(!c) return { x0:0, y0:0, x1:W, y1:H };
+  const x0 = Math.max(0, Math.min(W-1, Math.round(c.x0*W)));
+  const y0 = Math.max(0, Math.min(H-1, Math.round(c.y0*H)));
+  return { x0, y0,
+           x1: Math.max(x0+1, Math.min(W, Math.round(c.x1*W))),
+           y1: Math.max(y0+1, Math.min(H, Math.round(c.y1*H))) };
+}
+
 function drawTracePreview(){
   const cv = $('trCv'), W = TR.pW, H = TR.pH;
   if(!TR.plum) return;
@@ -660,7 +858,125 @@ function drawTracePreview(){
     d[p]=d[p+1]=d[p+2]=v; d[p+3]=255;
   }
   ctx.putImageData(img,0,0);
+  if(S.trace.crop){
+    const c = cropPix(W,H);
+    ctx.fillStyle = 'rgba(10,12,16,.66)';
+    ctx.fillRect(0,0,W,c.y0);
+    ctx.fillRect(0,c.y1,W,H-c.y1);
+    ctx.fillRect(0,c.y0,c.x0,c.y1-c.y0);
+    ctx.fillRect(c.x1,c.y0,W-c.x1,c.y1-c.y0);
+    ctx.strokeStyle = OPS.cut.pv; ctx.lineWidth = 1;
+    ctx.strokeRect(c.x0+.5, c.y0+.5, c.x1-c.x0-1, c.y1-c.y0-1);
+  }
 }
+
+function syncCropUI(){
+  const on = !!S.trace.crop;
+  $('cropOff').hidden = !on;
+  $('cropNote').textContent = on ? 'cropped — tracing one part' : 'all of it';
+}
+function clearCrop(){
+  if(!S.trace.crop) return;
+  S.trace.crop = null;
+  syncCropUI();
+  queueTrace();
+}
+// Cropping happens on the whole canvas, not on the thumbnail: a 130-pixel
+// picture is too small to tell one part of a drawing from another, and the box
+// had to be redrawn from scratch every time it came out slightly wrong.
+let cropWas = null;                     // the crop as it was when this opened
+function openCrop(){
+  if(!TR.img) return;
+  cropWas = S.trace.crop ? { ...S.trace.crop } : null;
+  $('cropOverlay').hidden = false;
+  drawCrop();
+}
+function closeCrop(){ $('cropOverlay').hidden = true; }
+function cropApply(){
+  closeCrop(); syncCropUI(); drawTracePreview(); queueTrace();
+}
+function drawCrop(){
+  const cv = $('cropCv'), im = TR.img, host = $('cropOverlay');
+  if(!im) return;
+  const k = Math.min((host.clientWidth-56)/im.naturalWidth,
+                     (host.clientHeight-130)/im.naturalHeight, 3);
+  const W = Math.max(80, Math.round(im.naturalWidth*k));
+  const H = Math.max(60, Math.round(im.naturalHeight*k));
+  cv.width = W; cv.height = H;
+  cv.style.width = W+'px'; cv.style.height = H+'px';
+  const x = cv.getContext('2d');
+  x.fillStyle = '#fff'; x.fillRect(0,0,W,H);
+  x.drawImage(im, 0, 0, W, H);
+  const c = S.trace.crop;
+  if(!c) return;
+  const b = { x:c.x0*W, y:c.y0*H, w:(c.x1-c.x0)*W, h:(c.y1-c.y0)*H };
+  x.fillStyle = 'rgba(8,10,14,.62)';
+  x.fillRect(0,0,W,b.y); x.fillRect(0,b.y+b.h,W,H-b.y-b.h);
+  x.fillRect(0,b.y,b.x,b.h); x.fillRect(b.x+b.w,b.y,W-b.x-b.w,b.h);
+  x.strokeStyle = OPS.cut.pv; x.lineWidth = 1.5;
+  x.strokeRect(b.x+.5, b.y+.5, b.w-1, b.h-1);
+  x.fillStyle = OPS.cut.pv;
+  for(const [hx,hy] of [[b.x,b.y],[b.x+b.w,b.y],[b.x,b.y+b.h],[b.x+b.w,b.y+b.h]])
+    x.fillRect(hx-4, hy-4, 8, 8);
+}
+(function(){
+  const cv = $('cropCv');
+  const HANDLE = 12;                              // grab radius in screen pixels
+  let mode = null, from = null, was = null, grab = null;
+  const at = e => {
+    const r = cv.getBoundingClientRect();
+    return { x: Math.min(1, Math.max(0, (e.clientX-r.left)/(r.width||1))),
+             y: Math.min(1, Math.max(0, (e.clientY-r.top )/(r.height||1))) };
+  };
+  const span = (a,b) => ({ x0:Math.min(a.x,b.x), y0:Math.min(a.y,b.y),
+                           x1:Math.max(a.x,b.x), y1:Math.max(a.y,b.y) });
+  cv.addEventListener('pointerdown', e => {
+    const p = at(e), c = S.trace.crop;
+    const tx = HANDLE/cv.width, ty = HANDLE/cv.height;
+    mode = 'new'; from = p; was = c ? { ...c } : null; grab = null;
+    if(c){
+      // A corner first, then the inside of the box, then anywhere else.
+      for(const [cx,cy] of [['x0','y0'],['x1','y0'],['x0','y1'],['x1','y1']])
+        if(Math.abs(p.x-c[cx]) < tx && Math.abs(p.y-c[cy]) < ty){ mode='corner'; grab=[cx,cy]; }
+      if(mode!=='corner' && p.x>c.x0 && p.x<c.x1 && p.y>c.y0 && p.y<c.y1) mode = 'move';
+    }
+    try{ cv.setPointerCapture(e.pointerId); }catch(err){}
+    e.preventDefault();
+  });
+  cv.addEventListener('pointermove', e => {
+    if(!mode) return;
+    const p = at(e);
+    if(mode==='new') S.trace.crop = span(from, p);
+    else if(mode==='corner'){
+      const c = { ...S.trace.crop };
+      c[grab[0]] = p.x; c[grab[1]] = p.y;
+      S.trace.crop = { x0:Math.min(c.x0,c.x1), x1:Math.max(c.x0,c.x1),
+                       y0:Math.min(c.y0,c.y1), y1:Math.max(c.y0,c.y1) };
+    } else {
+      const dx = Math.min(Math.max(p.x-from.x, -was.x0), 1-was.x1);
+      const dy = Math.min(Math.max(p.y-from.y, -was.y0), 1-was.y1);
+      S.trace.crop = { x0:was.x0+dx, x1:was.x1+dx, y0:was.y0+dy, y1:was.y1+dy };
+    }
+    drawCrop();
+  });
+  const done = () => {
+    if(!mode) return;
+    mode = null;
+    const c = S.trace.crop;
+    // Under about a twentieth of the picture either way is a stray click rather
+    // than a crop, and a box that small would trace nothing anyway.
+    if(c && (c.x1-c.x0 < 0.05 || c.y1-c.y0 < 0.05)) S.trace.crop = was;
+    drawCrop();
+  };
+  cv.addEventListener('pointerup', done);
+  cv.addEventListener('pointercancel', done);
+})();
+$('trCv').onclick    = openCrop;
+$('cropOpen').onclick = openCrop;
+$('cropUse').onclick  = cropApply;
+$('cropAll').onclick  = ()=>{ S.trace.crop = null; cropApply(); };
+$('cropCancel').onclick = ()=>{ S.trace.crop = cropWas; closeCrop(); drawTracePreview(); };
+$('cropOff').onclick = clearCrop;
 
 // Boundaries run along pixel edges, never through pixel centres, so a contour is
 // a staircase on the integer lattice. A directed edge leaving vertex (x,y) is on
@@ -709,6 +1025,26 @@ function contours(bin,W,H,cap){
 
 const polyArea = p => { let a=0; for(let i=0,n=p.length;i<n;i+=2){
   const j=(i+2)%n; a += p[i]*p[j+1] - p[j]*p[i+1]; } return a/2; };
+
+const ringBox = r => {
+  let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+  for(let i=0;i<r.length;i+=2){
+    if(r[i]<x0)x0=r[i]; if(r[i]>x1)x1=r[i];
+    if(r[i+1]<y0)y0=r[i+1]; if(r[i+1]>y1)y1=r[i+1];
+  }
+  return [x0,y0,x1,y1];
+};
+// Ray casting. The rings come off a pixel grid with at least one pixel of ink
+// between a hole and the outline around it, so they never share a vertex and
+// testing a single corner is safe.
+function ptInRing(px,py,r){
+  let inside = false;
+  for(let i=0,n=r.length,j=n-2;i<n;j=i,i+=2){
+    const yi=r[i+1], yj=r[j+1];
+    if((yi>py) !== (yj>py) && px < r[j] + (py-yj)/(yi-yj)*(r[i]-r[j])) inside = !inside;
+  }
+  return inside;
+}
 
 // Ramer–Douglas–Peucker, iterative so a 50 000-point contour can't blow the stack.
 function rdp(pts,eps){
@@ -791,21 +1127,56 @@ function runTrace(keep){
   const t0 = performance.now();
   const { W, H, lum } = TR;
   const t = S.trace.t, inv = S.trace.invert;
-  const bin = new Uint8Array(W*H);
-  for(let i=0;i<bin.length;i++) bin[i] = ((lum[i]<t) !== inv) ? 1 : 0;
+  // Only the cropped window is binarised, so a shape running past the box is
+  // simply cut off at it — which is what cropping a picture means.
+  const cp = cropPix(W,H);
+  const CW = cp.x1-cp.x0, CH = cp.y1-cp.y0;
+  const bin = new Uint8Array(CW*CH);
+  for(let y=0;y<CH;y++){
+    const src = (y+cp.y0)*W + cp.x0, dst = y*CW;
+    for(let x=0;x<CW;x++) bin[dst+x] = ((lum[src+x]<t) !== inv) ? 1 : 0;
+  }
 
   const eps    = S.trace.sm*0.25;
   const fillet = S.trace.sm/10;
   const minA   = S.trace.sp*S.trace.sp*3;
-  const parts = [];
-  for(const lp of contours(bin,W,H,TRACE_HALT)){
+  const rings = [];
+  for(const lp of contours(bin,CW,CH,TRACE_HALT)){
     if(minA && Math.abs(polyArea(lp)) < minA) continue;
-    const s = rdpRing(lp,eps);
-    if(s.length < 6) continue;
-    const d = ringPath(s,fillet);
-    if(d) parts.push(d);
-    if(parts.length >= TRACE_HALT) break;
+    const r = rdpRing(lp,eps);
+    if(r.length < 6) continue;
+    const d = ringPath(r,fillet);
+    if(d) rings.push({ r, d, a:Math.abs(polyArea(r)), bb:ringBox(r) });
+    if(rings.length >= TRACE_HALT) break;
   }
+  const parts = rings;
+
+  // Group each outline with the holes inside it, so one piece of the picture
+  // becomes one shape that can be clicked, recoloured or deleted on its own —
+  // the whole image as a single path could only ever be taken or left whole.
+  // Biggest first, so the first ring found containing this one is its immediate
+  // parent; even depth is solid, odd is a hole, and a shape sitting inside a
+  // hole starts a piece of its own.
+  rings.sort((a,b) => b.a - a.a);
+  const depth = new Int32Array(rings.length), parent = new Int32Array(rings.length).fill(-1);
+  for(let i=0;i<rings.length;i++){
+    const b = rings[i].bb;
+    for(let j=i-1;j>=0;j--){
+      const a = rings[j].bb;
+      if(b[0] >= a[0] && b[1] >= a[1] && b[2] <= a[2] && b[3] <= a[3]
+         && ptInRing(rings[i].r[0], rings[i].r[1], rings[j].r)){
+        parent[i] = j; depth[i] = depth[j]+1; break;
+      }
+    }
+  }
+  const pieces = [], slot = new Int32Array(rings.length).fill(-1);
+  for(let i=0;i<rings.length;i++) if(!(depth[i] & 1)){ slot[i] = pieces.length; pieces.push(rings[i].d); }
+  for(let i=0;i<rings.length;i++){
+    if(!(depth[i] & 1)) continue;
+    const k = parent[i] >= 0 ? slot[parent[i]] : -1;
+    if(k >= 0) pieces[k] += rings[i].d;          // a hole, cut out of its own outline
+  }
+
   const ms = Math.round(performance.now()-t0);
   S.traceCount = parts.length;
   const msg = $('trMsg');
@@ -828,17 +1199,20 @@ function runTrace(keep){
     return;
   }
   msg.hidden = true;
-  $('trCount').textContent = parts.length.toLocaleString()
-    + ' shape' + (parts.length===1?'':'s') + ' · ' + ms + ' ms';
+  $('trCount').textContent = pieces.length.toLocaleString()
+    + ' piece' + (pieces.length===1?'':'s')
+    + (parts.length !== pieces.length ? ' · '+parts.length.toLocaleString()+' outlines' : '')
+    + ' · ' + ms + ' ms';
 
   // Default physical size: what the image would be at 96 dpi, but never more than
   // three-quarters of the shorter side of the bed, so a phone photo isn't 1 m wide.
-  const natMm = Math.max(TR.natW,TR.natH)/PX_PER_MM;
+  const natMm = Math.max(TR.natW,TR.natH) * (Math.max(CW,CH)/Math.max(W,H)) / PX_PER_MM;
   const mmLong = Math.min(natMm, Math.min(S.bed.w,S.bed.h)*0.75);
-  const k = mmLong/Math.max(W,H);
-  const svg = `<svg xmlns="${NS}" width="${(W*k).toFixed(3)}mm" height="${(H*k).toFixed(3)}mm" `
-    + `viewBox="0 0 ${W} ${H}"><path data-traced="1" fill="#000000" fill-rule="evenodd" `
-    + `d="${parts.join('')}"/></svg>`;
+  const k = mmLong/Math.max(CW,CH);
+  const body = pieces.map(d =>
+    `<path data-traced="1" fill="#000000" fill-rule="evenodd" d="${d}"/>`).join('');
+  const svg = `<svg xmlns="${NS}" width="${(CW*k).toFixed(3)}mm" height="${(CH*k).toFixed(3)}mm" `
+    + `viewBox="0 0 ${CW} ${CH}">${body}</svg>`;
   load(svg, TR.name+'.svg', keep, true);
 }
 
@@ -865,11 +1239,18 @@ function load(text,name,keep,fromTrace){
     return;
   }
   S.trace.on = !!fromTrace;
+  // A half-drawn shape belongs to the bed as it was a moment ago.
+  pendCancel(); dimOff();
   $('secTrace').hidden = !fromTrace;
   // A re-trace is the same design with a slider moved, not a new job: keep the
   // size, the position on the bed and whatever the student set each colour to.
-  const prev = (keep && S.loaded)
-    ? { mmW:S.mmW, mmH:S.mmH, pos:{...S.pos}, align:S.align, code:S.jobCode } : null;
+  // Millimetres per unit rather than the finished width, because cropping
+  // changes the shape of the frame: hold the width and a cropped strip of
+  // lettering would balloon to fill it, where holding the scale leaves it the
+  // size it already was in the picture. With no crop the frame is unchanged and
+  // the two come to the same thing.
+  const prev = (keep && S.loaded && S.vbW > 0 && S.vbH > 0)
+    ? { sclX:S.mmW/S.vbW, sclY:S.mmH/S.vbH, pos:{...S.pos}, align:S.align, code:S.jobCode } : null;
   S.name = (name||'design').replace(/\.svg$/i,'');
   $('stage').textContent = '';
   S.svg = document.importNode(root,true);
@@ -891,6 +1272,11 @@ function load(text,name,keep,fromTrace){
   S.mmH = hMm || S.vbH/PX_PER_MM;
 
   if(!prev){ S.opChoice = {}; S.view = null; }   // a new design gets fresh guesses
+  // harvest() builds a whole new set of items, so anything selected from the
+  // last design is about to become a dangling object the panel would still
+  // claim to be editing. The undo stack is indexed by item position, so it
+  // cannot survive the swap either.
+  S.sel.clear(); S.undo.length = 0;
   harvest();
   if(!S.items.length){
     alert('No shapes found in that SVG.\n\nThat usually means the design was really just a '
@@ -900,13 +1286,15 @@ function load(text,name,keep,fromTrace){
   }
   S.loaded = true;
   if(prev){
-    S.mmW=prev.mmW; S.mmH=prev.mmH; S.pos=prev.pos; S.align=prev.align; S.jobCode=prev.code;
+    if(prev.sclX > 0 && isFinite(prev.sclX)) S.mmW = S.vbW*prev.sclX;
+    if(prev.sclY > 0 && isFinite(prev.sclY)) S.mmH = S.vbH*prev.sclY;
+    S.pos=prev.pos; S.align=prev.align; S.jobCode=prev.code;
   } else {
     S.jobCode = rnd4()+'-'+rnd4();
     S.align = 'top-left'; S.pos = { x:0, y:0 };
   }
   syncSize(); syncPos(); syncPad();
-  ['secSize','secPlace','secOutline','secCal','secColours','secChecks'].forEach(i=>$(i).hidden=false);
+  ['secSize','secPlace','secOutline','secColours','secChecks'].forEach(i=>$(i).hidden=false);
   syncLive();
   if(!prev) $('dropHost').innerHTML = `<div class="filechip">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 1.5H4a1.5 1.5 0 0 0-1.5 1.5v10A1.5 1.5 0 0 0 4 14.5h8a1.5 1.5 0 0 0 1.5-1.5V6z"/><path d="M9 1.5V6h4.5"/></svg>
@@ -1023,7 +1411,71 @@ function regroup(){
 }
 
 const activeItems = () =>
-  S.items.filter(i => !(S.removeBg && i.isBg) && S.groups.get(i.colour).op!=='ignore');
+  S.items.filter(i => !i.del && !(S.removeBg && i.isBg) && opFor(i)!=='ignore');
+const activeDrawn = () => S.drawn.filter(d => d.op!=='ignore');
+// Skipped is not deleted. A shape set to Skip leaves every export, but it has
+// to stay on screen and stay clickable — otherwise one tap on Skip loses it
+// for good, with no colour row to bring it back the way the design has.
+const ghostEl = d => {
+  const n = drawnEl(d, 'cut', true);
+  n.setAttribute('fill','none');
+  n.setAttribute('stroke','#5a6377');
+  n.setAttribute('stroke-dasharray', (3.5/(S.ppm||3))+' '+(2.5/(S.ppm||3)));
+  return n;
+};
+
+// Page-millimetre bounds of anything selectable, which is what the marquee
+// tests against and what the selection outline is drawn from.
+function boxOf(o){
+  // A guide is a line or a bare point, not an area. It gets a box all the same,
+  // so the marquee and the pick test can treat it like anything else on screen.
+  if(o.guide) return o.k==='p'
+    ? { x:o.x-1, y:o.y-1, w:2, h:2 }
+    : { x:Math.min(o.x,o.x2), y:Math.min(o.y,o.y2),
+        w:Math.abs(o.x2-o.x), h:Math.abs(o.y2-o.y) };
+  if(o.drawn){
+    if(o.kind==='poly') return polyBox(o);
+    return { x:Math.min(o.x,o.x+o.w), y:Math.min(o.y,o.y+o.h),
+             w:Math.abs(o.w), h:Math.abs(o.h) };
+  }
+  // Same placement maths buildOutput uses, so the outline drawn round a shape
+  // lands exactly where the shape itself is rendered.
+  const sx = sxMm(), sy = syMm();
+  const art = artBoxMm(), pos = placeMm(art);
+  const ox = art ? pos.x - art.x : 0, oy = art ? pos.y - art.y : 0;
+  return { x:(o.bbox.x-S.vbX)*sx + ox + (o.dx||0),
+           y:(o.bbox.y-S.vbY)*sy + oy + (o.dy||0),
+           w:o.bbox.width*sx, h:o.bbox.height*sy };
+}
+
+// A baked outline's bounds. Walking a few thousand traced points is far too
+// slow to do on every pointermove once snapping is asking for them, so the
+// answer is cached per shape and thrown away when the shape moves or scales.
+// x,y are a plain offset, which is what lets a baked outline be dragged at all.
+const polyCache = new WeakMap();
+function polyBox(o){
+  const ox = o.x||0, oy = o.y||0;
+  const sig = S.polyRev;
+  const c = polyCache.get(o);
+  if(c && c.sig===sig) return { x:c.x+ox, y:c.y+oy, w:c.w, h:c.h };
+  let x1=Infinity,y1=Infinity,x2=-Infinity,y2=-Infinity;
+  for(const p of o.polys) for(const q of p){
+    if(q.x<x1)x1=q.x; if(q.y<y1)y1=q.y; if(q.x>x2)x2=q.x; if(q.y>y2)y2=q.y;
+  }
+  const b = { sig, x:x1, y:y1, w:x2-x1, h:y2-y1 };
+  polyCache.set(o, b);
+  return { x:x1+ox, y:y1+oy, w:b.w, h:b.h };
+}
+// Resize a baked outline about its own top-left corner.
+function scalePoly(o, w, h){
+  const b = polyBox(o);
+  const kx = b.w>0.001 ? w/b.w : 1, ky = b.h>0.001 ? h/b.h : 1;
+  const ax = b.x-(o.x||0), ay = b.y-(o.y||0);
+  for(const p of o.polys) for(const q of p){
+    q.x = ax + (q.x-ax)*kx; q.y = ay + (q.y-ay)*ky;
+  }
+  S.polyRev++;
+}
 
 // Shape bounds in page millimetres, before placement.
 function rawArtBoxMm(){
@@ -1137,25 +1589,34 @@ function preflight(){
   // A check-square-only job is not an empty job, so the "nothing will be made"
   // alarm has to tell the difference between no design at all and a design whose
   // every colour has been set to Skip.
-  if(!S.loaded)
-    add('warn','Check square only',
-      'No design is loaded, so this job cuts the 100 mm square and nothing else. Run it on '
-      + 'scrap, measure the square edge to edge, then type what you got into "It actually measured".');
-  else if(!active.length) add('bad','Nothing will be made','Every colour is set to Skip, so the laser has nothing to do.');
-  else if(!cuts.length && !S.outline.on) add('warn','No cut lines','Nothing is set to Cut, so the piece will not come free of the sheet. Fine if you only want engraving.');
+  // Shapes drawn here are page fixtures, so they survive loading a new design
+  // on purpose — the same jig holes usually want to go on the next student's
+  // sheet too. That must never be silent, though: carrying one student's
+  // geometry into another's job is exactly the kind of thing this panel is for.
+  if(S.loaded && S.drawn.length)
+    add('warn', S.drawn.length+' shape'+(S.drawn.length===1?'':'s')+' drawn here',
+      'As well as the design, this job includes '+S.drawn.length+' shape'
+      + (S.drawn.length===1?'':'s') + ' drawn in the preview. They stay put when you load a '
+      + 'new design, so check they are still wanted. Select and delete any that are not.');
 
-  // The check square is drawn on the page, so a page smaller than 120 mm has
-  // nowhere to put it and it is silently dropped. Say so rather than let the
-  // student cut a sheet and wonder where the square went.
-  if(S.cal.on){
-    const bedPage = S.pageMode==='bed' || !S.loaded;
-    const pw = bedPage ? S.bed.w : (artBoxMm()||{w:0}).w;
-    const ph = bedPage ? S.bed.h : (artBoxMm()||{h:0}).h;
-    if(pw < CAL_MM+20 || ph < CAL_MM+20)
-      add('warn','Check square does not fit',
-        `A 100 mm square needs a page of at least 120 × 120 mm and this one is ${round(pw)} × ${round(ph)} mm, `
-        + 'so it has been left out. Switch the page size to Full bed to make room for it.');
-  }
+  if(!S.loaded && S.drawn.length)
+    add('warn', S.drawn.length+' shape'+(S.drawn.length===1?'':'s')+' drawn here',
+      'There is no design loaded — this job is only what has been drawn in the preview.');
+  else if(S.loaded && !active.length)
+    add('bad','Nothing will be made','Every colour is set to Skip, so the laser has nothing to do.');
+  else if(S.loaded && !cuts.length && !S.outline.on)
+    add('warn','No cut lines','Nothing is set to Cut, so the piece will not come free of the sheet. Fine if you only want engraving.');
+
+  // Shapes drawn here are in bed millimetres, so one dragged past the edge is
+  // simply lost. Nothing else checks them, because until now nothing else could.
+  const off = S.drawn.filter(d => d.op!=='ignore').filter(d => {
+    const b = boxOf(d);
+    return b.x < -0.5 || b.y < -0.5 || b.x+b.w > S.bed.w+0.5 || b.y+b.h > S.bed.h+0.5;
+  });
+  if(off.length)
+    add('bad', off.length+' drawn shape'+(off.length===1?'':'s')+' off the bed',
+      'Part of what has been drawn here sits outside the bed and would be lost. Drag it back inside '
+      + 'the dashed outline, or select it and type a position.');
 
   const art = artBoxMm(), pos = placeMm(art);
   if(art){
@@ -1171,25 +1632,6 @@ function preflight(){
         + 'or click a corner on the placement pad.');
   }
 
-  // The size correction scales positions as well as sizes -- it has to, or the
-  // gap between two parts would not grow with them. That means a job which fits
-  // the bed at true size can be flung off it by a large correction, and the
-  // checks above all run on the unscaled numbers, so nothing else would notice.
-  const cf = calFactor();
-  if(cf !== 1){
-    let fx = 0, fy = 0;
-    if(art){ fx = (pos.x+art.w)*cf; fy = (pos.y+art.h)*cf; }
-    if(S.cal.on){
-      fx = Math.max(fx, (calBox().x+CAL_MM)*cf);
-      fy = Math.max(fy, (calBox().y+CAL_MM)*cf);
-    }
-    if(fx > S.bed.w+0.5 || fy > S.bed.h+0.5)
-      add('bad','Size correction pushes the job off the bed',
-        `Everything is being scaled ${((cf-1)*100).toFixed(2)}% to correct your measured size check, `
-        + `which puts the far corner at ${round(fx)}, ${round(fy)} mm on a ${S.bed.w} × ${S.bed.h} mm bed. `
-        + 'Move the design nearer the top-left corner, make it smaller, or re-measure the check square '
-        + '— a correction this large usually means the measurement was mistyped.');
-  }
 
   const openCuts = cuts.filter(isOpen).length;
   if(openCuts) add('warn', openCuts+' open cut '+(openCuts===1?'line':'lines'),
@@ -1257,6 +1699,51 @@ function preflight(){
 // Keeps the original tree intact (transforms, clip paths, defs) and restyles in
 // place, then wraps it in one transform that converts user units to millimetres
 // and positions the artwork on the bed.
+// Page millimetres -> the node's own parent space, for nudging one shape.
+function localDelta(item){
+  if(!item.dx && !item.dy) return null;
+  const ux = item.dx/sxMm(), uy = item.dy/syMm();   // page mm -> root user units
+  let M = null;
+  try{
+    const r = S.svg.getScreenCTM(), p = item.node.parentNode.getScreenCTM();
+    if(r && p) M = r.inverse().multiply(p);
+  }catch(e){ M = null; }
+  if(!M) return { x:ux, y:uy };                     // no chain: already root space
+  const det = M.a*M.d - M.b*M.c;
+  if(!det) return { x:ux, y:uy };
+  return { x:( M.d*ux - M.c*uy)/det, y:(-M.b*ux + M.a*uy)/det };
+}
+
+// A shape drawn here, as an SVG element in page millimetres.
+function drawnEl(d, part, preview){
+  const pen = preview ? OPS[part].pv : OPS[part].pen;
+  const wide = preview ? Math.max(HAIRLINE_MM, 1.4/(S.ppm||3)) : HAIRLINE_MM;
+  const area = part==='engrave';
+  const paint = area ? { fill:pen, stroke:'none' }
+                     : { fill:'none', stroke:pen, 'stroke-width':wide,
+                         'stroke-linejoin':'round', 'stroke-linecap':'round' };
+  const x = Math.min(d.x, d.x+d.w), y = Math.min(d.y, d.y+d.h);
+  const w = Math.abs(d.w), h = Math.abs(d.h);
+  if(d.kind==='rect')   return el('rect',{ x, y, width:w, height:h, ...paint });
+  if(d.kind==='circle') return el('ellipse',{ cx:x+w/2, cy:y+h/2, rx:w/2, ry:h/2, ...paint });
+  if(d.kind==='line')   return el('line',{ x1:d.x, y1:d.y, x2:d.x+d.w, y2:d.y+d.h,
+                                           ...paint, fill:'none' });
+  // poly: a baked copy of an existing shape, already flattened to page mm.
+  // A ring comes out of the flattener with its first point repeated at the end,
+  // so a loop can be told from an open line by looking rather than by a flag —
+  // which matters because these outlines go through JSON for undo, and a flag
+  // hung off an array would not survive the trip. Z rather than the repeated
+  // point alone, so the seam gets a proper join instead of two square ends.
+  const ox = d.x||0, oy = d.y||0;          // baked outlines carry their move as an offset
+  const dd = d.polys.map(p => {
+    const a = p[0], z = p[p.length-1];
+    const shut = p.length > 2 && Math.abs(a.x-z.x) < 1e-6 && Math.abs(a.y-z.y) < 1e-6;
+    return 'M'+p.map(q=>round2(q.x+ox)+' '+round2(q.y+oy)).join('L') + (shut ? 'Z' : '');
+  }).join(' ');
+  return el('path',{ d:dd, ...paint });
+}
+const round2 = n => Math.round(n*100)/100;
+
 function buildOutput(preview){
   const used = { cut:0, score:0, engrave:0 };
   // A check-square job has no artwork at all — the square IS the job — so every
@@ -1303,8 +1790,16 @@ function buildOutput(preview){
     const item = byNode.get(src);
     if(!item){ node.remove(); return; }
 
-    const op = (S.removeBg && item.isBg) ? 'ignore' : S.groups.get(item.colour).op;
+    const op = (item.del || (S.removeBg && item.isBg)) ? 'ignore' : opFor(item);
     if(op==='ignore'){ node.remove(); return; }
+    // A nudged shape is moved in page millimetres, but the translate has to go
+    // into its own parent's coordinate space, which the design may have scaled
+    // or rotated. Invert the chain rather than assume it is the identity.
+    const nud = localDelta(item);
+    if(nud){
+      const t = node.getAttribute('transform');
+      node.setAttribute('transform', `translate(${nud.x} ${nud.y})`+(t?' '+t:''));
+    }
     // Layer toggles hide one pass at a time, so a cut+engrave shape with only the
     // engraving shown still draws -- as the engraving alone.
     const parts = partsOf(op).filter(p => !preview || S.show[p]);
@@ -1378,34 +1873,28 @@ function buildOutput(preview){
     used.cut++;
   }
 
-  // Size-check square: a plain 100 mm reference drawn in page millimetres, parked
-  // in the bottom-left corner because artwork defaults to the top-left.
-  const fitsCal = pageW >= CAL_MM+20 && pageH >= CAL_MM+20;
-  if(S.cal.on && fitsCal && (!preview || S.show.cut)){
-    used.cut++;
-    // In the preview the square is drawn by renderCanvas instead, into a layer of
-    // its own, so that dragging the square cannot drag the artwork along with it.
-    if(!preview) out.appendChild(el('rect',{
-      x:calBox().x, y:calBox().y, width:CAL_MM, height:CAL_MM,
-      fill:'none', stroke:OPS.cut.pen, 'stroke-width':HAIRLINE_MM
-    }));
+  // Shapes drawn here. They live in page millimetres like the cut outline and
+  // the check square, not in the artwork's own space — a 6 mm alignment hole is
+  // 6 mm on the material whatever the student later does to the design's size.
+  // In "crop to the artwork" the page IS the design, shifted to the origin.
+  // Shapes drawn here are in bed millimetres, so they have to make the same
+  // journey or they land off the page and in the wrong place against the design.
+  const dg = onBed ? out : el('g',{ transform:`translate(${-pos.x} ${-pos.y})` });
+  for(const d of S.drawn){
+    if(d.op==='ignore'){ if(preview) dg.appendChild(ghostEl(d)); continue; }
+    for(const part of partsOf(d.op)){
+      if(preview && !S.show[part]) continue;
+      dg.appendChild(drawnEl(d, part, preview));
+      used[part]++;
+    }
   }
+  if(dg !== out) out.appendChild(dg);
 
-  // Scale correction, applied last so it catches the artwork, the cut outline and
-  // the check square alike. Export only — the preview must keep showing the size
-  // that was asked for, not the slightly larger one being sent to beat the shrink.
-  const cal = calFactor();
-  if(!preview && cal!==1){
-    const g = el('g',{ transform:'scale('+cal+')' });
-    while(out.firstChild) g.appendChild(out.firstChild);
-    out.appendChild(g);
-  }
-  return { svg:out, used, art, pos, pageW, pageH, cal, fitsCal };
+  return { svg:out, used, art, pos, pageW, pageH, cal:CAL_FACTOR };
 }
 
 /* ================= render ================= */
 function refresh(){
-  if(!liveJob()) return;
   S.bed.w = Math.max(10, +$('bw').value||600);
   S.bed.h = Math.max(10, +$('bh').value||400);
   S.pos.x = +$('px').value||0;
@@ -1417,7 +1906,8 @@ function refresh(){
     : 'The file is cropped tight to the artwork. You position it yourself in the laser software.';
 
   syncColourRows();
-  syncCalNote();
+  syncSelPanel();
+  syncGuides();
   renderMsgs(preflight());
   renderCanvas();
 
@@ -1477,8 +1967,10 @@ function buildColourRows(){
           ? 'background:repeating-linear-gradient(45deg,#555,#555 4px,#999 4px,#999 8px)'
           : 'background:'+g.hex}"></span>
         <code>${label}</code>
-        <em>${g.items.length} × ${srcTxt}</em>
+        <em class="ccount">${g.items.length} × ${srcTxt}</em>
       </div><div class="cards c4"></div>`;
+    g.count = row.querySelector('.ccount');
+    g.srcTxt = srcTxt;
     const cards = row.querySelector('.cards');
     const choices = g.hex==='IMAGE' ? ['engrave','ignore'] : ['cut','score','engrave','ignore'];
     if(choices.length===2) cards.style.gridTemplateColumns='1fr 1fr';
@@ -1491,7 +1983,12 @@ function buildColourRows(){
         // Clicking CUT while cut+engrave is already on must not quietly throw the
         // engraving away — the tick box below is the control for that.
         if(op==='cut' && g.op==='engcut') return;
-        g.op=op; S.opChoice[g.hex]=op; syncColourRows(); refresh();
+        pushUndo();
+        // Setting a whole colour means the whole colour, so any per-shape
+        // answers inside it are cleared. Leaving them to quietly outrank this
+        // click would make the row lie about what the laser is going to do.
+        for(const it of g.items) it.op = null;
+        g.op=op; S.opChoice[g.hex]=op; syncColourRows(); syncSelPanel(); refresh();
       };
       cards.appendChild(b);
       g.btns[op] = b;
@@ -1532,6 +2029,12 @@ const isPressed = (g,op) => g.op===op || (op==='cut' && g.op==='engcut');
 function syncColourRows(){
   for(const g of S.groups.values()){
     if(!g.btns) continue;
+    // Deleting half a traced design should not leave the row still boasting
+    // about the shapes that are gone.
+    if(g.count){
+      const live = g.items.filter(i=>!i.del).length;
+      g.count.textContent = live + (live===g.items.length ? '' : ' of '+g.items.length) + ' × ' + g.srcTxt;
+    }
     for(const op in g.btns) g.btns[op].setAttribute('aria-pressed', isPressed(g,op));
     if(g.alsoRow){
       g.alsoRow.hidden  = !(g.op==='cut' || g.op==='engcut');
@@ -1554,12 +2057,12 @@ function renderMsgs(W){
 }
 
 function setHud(box,used){
-  $('hud').innerHTML = box
-    ? `<span>ART <b>${round(box.w)} × ${round(box.h)}</b> mm</span>
-       <span>AT <b>${round(box.x)}, ${round(box.y)}</b></span>
-       <span>BED <b>${S.bed.w} × ${S.bed.h}</b> mm</span>
-       <span><b>${used.cut}</b> cut · <b>${used.score}</b> score · <b>${used.engrave}</b> engrave</span>`
-    : '';
+  const u = used || S.used || { cut:0, score:0, engrave:0 };
+  $('hud').innerHTML =
+    (box ? `<span>ART <b>${round(box.w)} × ${round(box.h)}</b> mm</span>
+       <span>AT <b>${round(box.x)}, ${round(box.y)}</b></span>` : '')
+    + `<span>BED <b>${S.bed.w} × ${S.bed.h}</b> mm</span>
+       <span><b>${u.cut}</b> cut · <b>${u.score}</b> score · <b>${u.engrave}</b> engrave</span>`;
 }
 
 function renderCanvas(){
@@ -1630,28 +2133,14 @@ function renderCanvas(){
   while(svg.firstChild) g.appendChild(svg.firstChild);
   view.appendChild(g);
 
-  // The check square, in a layer of its own so it drags independently of the
-  // artwork. Two rects on the same geometry: the hairline you actually cut, and
-  // a fat invisible one over the edge to give a 14-pixel grab target, because a
-  // 0.01 mm line is impossible to hit with a mouse.
-  let calg = null;
-  const calFits = S.bed.w >= CAL_MM+20 && S.bed.h >= CAL_MM+20;
-  if(S.cal.on && calFits && S.show.cut){
-    const b = calBox();
-    calg = el('g',{ id:'calg' });
-    calg.appendChild(el('rect',{
-      x:b.x, y:b.y, width:b.w, height:b.h, fill:'none',
-      stroke:OPS.cut.pv, 'stroke-width':Math.max(HAIRLINE_MM, px(1.4))
-    }));
-    calg.appendChild(el('rect',{
-      x:b.x, y:b.y, width:b.w, height:b.h, fill:'none', stroke:'transparent',
-      'stroke-width':px(14), 'data-move':'cal', style:'cursor:move;pointer-events:stroke'
-    }));
-    const tag = el('text',{ x:b.x+b.w/2, y:b.y+b.h/2, fill:'#f8485e',
-      'text-anchor':'middle', 'font-size':px(12), 'pointer-events':'none' });
-    tag.textContent = '100 mm check';
-    calg.appendChild(tag);
-    view.appendChild(calg);
+  // Guides. Drawn only here, in the preview's own layers — buildOutput never
+  // sees them, so they cannot reach an export, the laser or a cut/score/engrave
+  // count. The selected ones sit in a layer of their own so a drag can carry
+  // them with one transform, the way the selection outlines move.
+  if(S.guides.length){
+    view.appendChild(guideLayer('guideg', S.guides.filter(q => !S.sel.has(q)), px));
+    const on = S.guides.filter(q => S.sel.has(q));
+    if(on.length) view.appendChild(guideLayer('guidesel', on, px));
   }
 
   const fr = el('text',{ x:px(2), y:S.bed.h+px(14), fill:'#4b5469',
@@ -1659,14 +2148,1101 @@ function renderCanvas(){
   fr.textContent='front';
   view.appendChild(fr);
 
+  // What "selected" looks like, in its own layer so a drag can move the lot
+  // with one transform instead of rebuilding the design on every frame. Under
+  // the shapes, not over them: a highlight must not hide the cut line it marks.
+  if(S.sel.size){
+    const sg = el('g',{ id:'selg', 'pointer-events':'none' });
+    // Outlining four hundred shapes one by one is both slow and unreadable;
+    // past a crowd, one frame round the lot says it better.
+    if(S.sel.size > 60) sg.appendChild(bracketEl(unionBox(selList()), px, SEL_COL, false));
+    else for(const o of S.sel) sg.appendChild(selMark(o, px, false));
+    view.insertBefore(sg, g);
+  }
+  // What the pointer is over, so it is clear which shape a click will take.
+  if(S.hover && !S.sel.has(S.hover)){
+    const hg = el('g',{ id:'hoverg', 'pointer-events':'none' });
+    hg.appendChild(selMark(S.hover, px, true));
+    view.insertBefore(hg, g);
+  }
+
   const handles = art ? makeHandles(view, px) : null;
   if(handles) handles.place({ x:pos.x, y:pos.y, w:art.w, h:art.h });
 
   host.appendChild(view);
-  bindStage(view, g, handles, art ? { x:pos.x, y:pos.y, w:art.w, h:art.h } : null, calg);
+  bindStage(view, g, handles, art ? { x:pos.x, y:pos.y, w:art.w, h:art.h } : null);
 
   $('zFit').querySelector('b').textContent = Math.round(S.view.zoom*100)+'%';
   setHud(art ? { x:pos.x, y:pos.y, w:art.w, h:art.h } : null, used);
+}
+
+/* ===================== editing ===================== */
+const DRAW_TOOLS = new Set(['rect','circle','line','polygon','arc']);
+let spaceDown = false;
+
+// Undo matters more here than anywhere else in the tool: Delete is one keypress
+// and a traced design can have hundreds of shapes, so an accidental one with no
+// way back would cost a student their work. Snapshots rather than an action log
+// — the editable state per shape is four fields, so copying it is cheap and
+// cannot drift out of step with the real thing the way replayed actions can.
+const UNDO_MAX = 40;
+function snapshot(){
+  return JSON.stringify({
+    items: S.items.map(i => ({ op:i.op||null, del:!!i.del, dx:i.dx||0, dy:i.dy||0 })),
+    drawn: S.drawn, guides: S.guides,
+    groups: [...S.groups.entries()].map(([k,g]) => [k, g.op])
+  });
+}
+function pushUndo(){
+  S.undo.push(snapshot());
+  if(S.undo.length > UNDO_MAX) S.undo.shift();
+}
+function undo(){
+  const s = S.undo.pop();
+  if(!s) return;
+  const d = JSON.parse(s);
+  d.items.forEach((v,n) => {
+    const i = S.items[n]; if(!i) return;
+    i.op = v.op; i.del = v.del; i.dx = v.dx; i.dy = v.dy;
+  });
+  S.drawn = d.drawn;
+  S.guides = d.guides || [];
+  for(const g of S.guides) g.guide = true;   // snapshots taken before the flag
+  for(const [k,op] of d.groups){ const g = S.groups.get(k); if(g) g.op = op; }
+  S.sel.clear(); dimOff();
+  syncColourRows(); refresh();
+}
+
+const selList = () => [...S.sel];
+function setSel(list){ S.sel = new Set(expandGroups(list)); armDim(); syncSelPanel(); renderCanvas(); }
+function clearSel(){ dimOff(); if(S.sel.size){ S.sel.clear(); syncSelPanel(); renderCanvas(); } }
+
+// Everything the pointer can land on, artwork and drawn shapes alike.
+const pickables = () => [
+  ...S.items.filter(i => !i.del && !(S.removeBg && i.isBg) && opFor(i)!=='ignore'),
+  ...S.drawn,                      // skipped shapes included: see ghostEl
+  ...S.guides                      // pickable so one can be taken out on its own
+];
+
+// Hit testing by maths rather than by DOM, because a hairline in the preview is
+// about a pixel wide and essentially unclickable, and giving every shape a fat
+// invisible twin would double the node count on a trace with hundreds of them.
+// Topmost-first so clicking overlapping shapes picks the one you can see.
+// Distance from a point to a segment, for catching a line by its length.
+function distSeg(p, a, b){
+  const vx = b.x-a.x, vy = b.y-a.y, L = vx*vx+vy*vy;
+  const t = L ? Math.max(0, Math.min(1, ((p.x-a.x)*vx + (p.y-a.y)*vy)/L)) : 0;
+  return Math.hypot(p.x-(a.x+vx*t), p.y-(a.y+vy*t));
+}
+// How far the pointer is from a guide, which is all that picking one comes to.
+const guideDist = (g, p) => g.k==='p' ? Math.hypot(p.x-g.x, p.y-g.y)
+  : distSeg(p, { x:g.x, y:g.y }, { x:g.x2, y:g.y2 });
+// Even-odd, the same rule the renderer fills by.
+function inRing(p, ring, ox, oy){
+  let n = false;
+  for(let i=0, j=ring.length-1; i<ring.length; j=i++){
+    const yi = ring[i].y+oy, yj = ring[j].y+oy, xi = ring[i].x+ox, xj = ring[j].x+ox;
+    if((yi > p.y) !== (yj > p.y) && p.x < (xj-xi)*(p.y-yi)/(yj-yi) + xi) n = !n;
+  }
+  return n;
+}
+// Is the pointer really ON this shape, rather than merely inside the box drawn
+// round it? A traced design is a pile of overlapping boxes, so testing boxes
+// means clicking one letter and selecting another — or deleting it.
+function hitExact(o, pt, tol){
+  if(o.guide) return guideDist(o, pt) <= tol*2;
+  if(o.drawn){
+    const b = boxOf(o);
+    if(o.kind==='line')
+      return distSeg(pt, { x:o.x, y:o.y }, { x:o.x+o.w, y:o.y+o.h }) <= tol*2;
+    if(o.kind==='circle'){
+      const rx = Math.max(b.w/2, 0.01) + tol, ry = Math.max(b.h/2, 0.01) + tol;
+      const dx = (pt.x-(b.x+b.w/2))/rx, dy = (pt.y-(b.y+b.h/2))/ry;
+      return dx*dx + dy*dy <= 1;
+    }
+    if(o.kind==='poly'){
+      const ox = o.x||0, oy = o.y||0;
+      for(const ring of o.polys){
+        if(inRing(pt, ring, ox, oy)) return true;
+        for(let i=1;i<ring.length;i++)
+          if(distSeg(pt, { x:ring[i-1].x+ox, y:ring[i-1].y+oy },
+                         { x:ring[i].x+ox,   y:ring[i].y+oy }) <= tol*2) return true;
+      }
+      return false;
+    }
+    return pt.x >= b.x-tol && pt.x <= b.x+b.w+tol && pt.y >= b.y-tol && pt.y <= b.y+b.h+tol;
+  }
+  // A loaded design: ask the shape itself. The node lives in the hidden source
+  // tree, so the point has to be walked back from page millimetres into the
+  // node's own units first. Text, images and <use> have no geometry to ask.
+  const n = o.node;
+  if(!n || typeof n.isPointInFill !== 'function') return false;
+  try{
+    const r = S.svg.getScreenCTM(), nc = n.getScreenCTM();
+    if(!r || !nc) return false;
+    const art = artBoxMm(), pos = placeMm(art);
+    const tx = (art ? pos.x - art.x : 0) + (o.dx||0);
+    const ty = (art ? pos.y - art.y : 0) + (o.dy||0);
+    const M = S.svg.createSVGMatrix()
+      .translate(tx,ty).scaleNonUniform(sxMm(), syMm()).translate(-S.vbX,-S.vbY)
+      .multiply(r.inverse().multiply(nc));
+    const q = S.svg.createSVGPoint();
+    q.x = pt.x; q.y = pt.y;
+    const l = q.matrixTransform(M.inverse());
+    return n.isPointInFill(l) || (n.isPointInStroke && n.isPointInStroke(l));
+  }catch(e){ return false; }
+}
+
+// Topmost-first, but a shape the pointer is really on beats one it is merely
+// inside the box of, and between two of a kind the smaller one wins — otherwise
+// a small part can never be picked out of the big one it sits on.
+function hitAt(pt, tolMm){
+  const list = pickables();
+  let best = null, score = Infinity, gBest = null, gScore = Infinity;
+  for(let n=list.length-1; n>=0; n--){
+    const o = list[n];
+    // A guide is a drawing aid drawn over everything, so it must not steal a
+    // click meant for the work underneath: nearest guide, but only if nothing
+    // real was hit at all.
+    if(o.guide){
+      const d = guideDist(o, pt);
+      if(d <= tolMm*2.5 && d < gScore){ gScore = d; gBest = o; }
+      continue;
+    }
+    const b = boxOf(o);
+    if(pt.x < b.x-tolMm || pt.x > b.x+b.w+tolMm ||
+       pt.y < b.y-tolMm || pt.y > b.y+b.h+tolMm) continue;
+    // A box is all there is to go on for text, photos, and shapes so thin that
+    // their own box is already tight. Everything else has to be really under
+    // the pointer, or a big shape's empty corner swallows every click near it.
+    const thin = b.w < 3*tolMm || b.h < 3*tolMm;
+    const testable = o.drawn || (!thin && o.node && typeof o.node.isPointInFill === 'function');
+    const exact = hitExact(o, pt, tolMm);
+    if(testable && !exact) continue;
+    const area = Math.max(b.w*b.h, 0.01) + (exact ? 0 : 1e9);
+    if(area < score){ score = area; best = o; }
+  }
+  return best || gBest;
+}
+function inMarquee(r){
+  return pickables().filter(o => {
+    const b = boxOf(o);
+    return b.x < r.x+r.w && b.x+b.w > r.x && b.y < r.y+r.h && b.y+b.h > r.y;
+  });
+}
+
+// --- actions on the selection ---
+function selSetOp(op){
+  if(!S.sel.size) return;
+  pushUndo();
+  for(const o of S.sel){ if(!o.guide) o.op = op; }   // a guide has no operation
+  syncColourRows(); syncSelPanel(); refresh();
+}
+function selDelete(){
+  if(!S.sel.size) return;
+  pushUndo();
+  for(const o of S.sel){
+    if(o.guide)      S.guides = S.guides.filter(g => g !== o);
+    else if(o.drawn) S.drawn  = S.drawn.filter(d => d !== o);
+    else o.del = true;
+  }
+  // The value box was pointing at one of those. Left armed, it goes on
+  // "resizing" a shape that no longer exists and eats an undo step each time.
+  S.sel.clear(); S.hover = null; dimOff();
+  syncSelPanel(); refresh();
+}
+function selNudge(dx, dy){
+  if(!S.sel.size) return;
+  for(const o of S.sel){
+    if(o.guide){ o.x += dx; o.y += dy; if(o.k==='l'){ o.x2 += dx; o.y2 += dy; } }
+    else if(o.drawn){ o.x = (o.x||0)+dx; o.y = (o.y||0)+dy; }
+    else { o.dx = (o.dx||0)+dx; o.dy = (o.dy||0)+dy; }
+  }
+}
+// Duplicating bakes the copy down to flattened outlines in page millimetres.
+// The copy is for filling a sheet, not for editing further, and baking means
+// it is immune to anything that later happens to the original's size or place.
+function selDuplicate(){
+  if(!S.sel.size) return;
+  pushUndo();
+  const made = [];
+  for(const o of S.sel){
+    if(o.guide){
+      const c = JSON.parse(JSON.stringify(o));
+      c.x += 5; c.y += 5; if(c.k==='l'){ c.x2 += 5; c.y2 += 5; }
+      S.guides.push(c); made.push(c);
+    } else if(o.drawn){
+      const c = JSON.parse(JSON.stringify(o));
+      c.id = S.nextId++; c.x = (c.x||0)+5; c.y = (c.y||0)+5;
+      S.drawn.push(c); made.push(c);
+    } else {
+      const polys = flattenSource(o);
+      if(!polys.length) continue;
+      const c = { drawn:true, kind:'poly', id:S.nextId++, op:opFor(o), x:0, y:0,
+                  polys: polys.map(p => p.map(q => ({ x:q.x+5, y:q.y+5 }))) };
+      S.drawn.push(c); made.push(c);
+    }
+  }
+  setSel(made); refresh();
+}
+// One source shape, flattened into page-millimetre outlines.
+function flattenSource(item){
+  try{
+    const r = S.svg.getScreenCTM(), n = item.node.getScreenCTM();
+    if(!r || !n) return [];
+    const art = artBoxMm(), pos = placeMm(art);
+    const tx = (art ? pos.x - art.x : 0) + (item.dx||0);
+    const ty = (art ? pos.y - art.y : 0) + (item.dy||0);
+    const M = S.svg.createSVGMatrix()
+      .translate(tx,ty).scaleNonUniform(sxMm(), syMm()).translate(-S.vbX,-S.vbY)
+      .multiply(r.inverse().multiply(n));
+    return flattenEl(item.node, M).map(simplify).filter(p => p.length>1);
+  }catch(e){ return []; }
+}
+
+/* ============ precision: snapping, typed sizes, the tape measure ============ */
+// SketchUp's three habits, in the smallest form that still helps a student: the
+// pointer catches on the points that matter, a dimension can be typed instead of
+// aimed at, and the tape leaves guides behind for the next shape to catch on.
+const SNAP_PX = 10;                        // grab radius on screen, in pixels
+const snapR = () => SNAP_PX/(S.ppm||3);    // ...the same radius in millimetres
+// Rank, not distance alone, settles a tie: a corner a little further off still
+// beats the middle of a long edge, because the corner is what you were aiming at.
+const SNAP_RANK  = { end:.62, guide:.7, mid:.78, centre:.82, bed:.95, edge:1 };
+const SNAP_LABEL = { end:'end', guide:'guide', mid:'midpoint', centre:'centre', bed:'bed', edge:'on guide' };
+const SNAP_COL   = { end:'#36c98a', guide:'#a78bfa', mid:'#36c98a', centre:'#36c98a', bed:'#f0a93b', edge:'#a78bfa' };
+const r1 = round;                          // a tenth of a millimetre, the finest worth typing
+const ART_ONLY = new Set(['art']);         // "moving the whole design": skip the design's own points
+
+// Nearest point on a guide line, so the pointer can run along one.
+function nearestOn(g, pt){
+  const vx = g.x2-g.x, vy = g.y2-g.y, L = vx*vx+vy*vy;
+  if(!L) return null;
+  const t = Math.max(0, Math.min(1, ((pt.x-g.x)*vx + (pt.y-g.y)*vy)/L));
+  return { x:g.x+vx*t, y:g.y+vy*t };
+}
+
+// Every point worth catching that is already within reach. Gathered per pointer
+// position rather than up front: a traced design has thousands of vertices, and
+// only the handful under the cursor can possibly win.
+function snapCands(pt, r, skip){
+  const out = [];
+  const noArt = skip && skip.has('art');
+  const near = b => pt.x>b.x-r && pt.x<b.x+b.w+r && pt.y>b.y-r && pt.y<b.y+b.h+r;
+  const add = (x,y,k) => { if(Math.abs(x-pt.x)<=r && Math.abs(y-pt.y)<=r) out.push({x,y,k}); };
+  const boxPts = (b,c,m,mid) => {
+    add(b.x,b.y,c); add(b.x+b.w,b.y,c); add(b.x,b.y+b.h,c); add(b.x+b.w,b.y+b.h,c);
+    add(b.x+b.w/2,b.y,m); add(b.x+b.w/2,b.y+b.h,m);
+    add(b.x,b.y+b.h/2,m); add(b.x+b.w,b.y+b.h/2,m);
+    add(b.x+b.w/2,b.y+b.h/2,mid);
+  };
+  boxPts({ x:0, y:0, w:S.bed.w, h:S.bed.h }, 'bed','bed','bed');
+  const art = S.loaded ? artBoxMm() : null;
+  if(art && !noArt){ const p = placeMm(art); boxPts({ x:p.x, y:p.y, w:art.w, h:art.h }, 'end','mid','centre'); }
+  for(const o of pickables()){
+    if(o.guide) continue;          // the guides get their own pass, below
+    if(skip && (skip.has(o) || (noArt && !o.drawn))) continue;
+    const b = boxOf(o);
+    if(!near(b)) continue;
+    if(o.drawn && o.kind==='line'){
+      add(o.x,o.y,'end'); add(o.x+o.w,o.y+o.h,'end');
+      add(o.x+o.w/2,o.y+o.h/2,'mid');
+    } else if(o.drawn && o.kind==='circle'){
+      // The box corners are off the shape; the quadrant points are on it.
+      add(b.x+b.w/2,b.y,'end'); add(b.x+b.w/2,b.y+b.h,'end');
+      add(b.x,b.y+b.h/2,'end'); add(b.x+b.w,b.y+b.h/2,'end');
+      add(b.x+b.w/2,b.y+b.h/2,'centre');
+    } else if(o.drawn && o.kind==='poly'){
+      // A baked outline carries its real vertices, so these are true corners
+      // rather than the corners of a box drawn round them.
+      const ox = o.x||0, oy = o.y||0;
+      for(const p of o.polys) for(let n=0;n<p.length;n++){
+        add(p[n].x+ox, p[n].y+oy, 'end');
+        if(n) add((p[n].x+p[n-1].x)/2+ox, (p[n].y+p[n-1].y)/2+oy, 'mid');
+      }
+      add(b.x+b.w/2,b.y+b.h/2,'centre');
+    } else boxPts(b,'end','mid','centre');
+  }
+  for(const g of S.guides){
+    if(g.k==='p'){ add(g.x,g.y,'guide'); continue; }
+    add(g.x,g.y,'guide'); add(g.x2,g.y2,'guide'); add((g.x+g.x2)/2,(g.y+g.y2)/2,'guide');
+    const q = nearestOn(g, pt); if(q) add(q.x,q.y,'edge');
+  }
+  return out;
+}
+
+// The pointer, pulled onto the best point within reach. With nothing in reach it
+// still lands on a tenth of a millimetre, so a free-hand drag is never ragged.
+function snapPt(pt, e, skip){
+  if(!S.snap || (e && e.altKey)) return { x:r1(pt.x), y:r1(pt.y) };
+  const r = snapR();
+  let best = null, score = Infinity;
+  for(const c of snapCands(pt, r, skip)){
+    const d = Math.hypot(c.x-pt.x, c.y-pt.y);
+    if(d > r) continue;
+    const sc = d * SNAP_RANK[c.k];
+    if(sc < score){ score = sc; best = c; }
+  }
+  return best ? { x:best.x, y:best.y, k:best.k } : { x:r1(pt.x), y:r1(pt.y) };
+}
+
+// Moving snaps the shape, not the cursor: the corners, edge middles and centre of
+// what is being dragged all reach for a target, and the closest pull wins. That
+// is what makes one rectangle land flush against another.
+function snapDelta(box, dx, dy, e, skip){
+  if(!S.snap || e.altKey || !box) return null;
+  const r = snapR();
+  let best = null, score = Infinity;
+  for(const [fx,fy] of [[0,0],[1,0],[0,1],[1,1],[.5,0],[.5,1],[0,.5],[1,.5],[.5,.5]]){
+    const pt = { x:box.x+fx*box.w+dx, y:box.y+fy*box.h+dy };
+    for(const c of snapCands(pt, r, skip)){
+      const d = Math.hypot(c.x-pt.x, c.y-pt.y);
+      if(d > r) continue;
+      const sc = d * SNAP_RANK[c.k];
+      if(sc < score){ score = sc; best = { dx:dx+(c.x-pt.x), dy:dy+(c.y-pt.y), at:c }; }
+    }
+  }
+  return best;
+}
+
+// What the pointer is over, redrawn only when the answer changes — this runs
+// on every mouse move over a design that can hold hundreds of shapes.
+function hoverAt(pt){
+  const was = S.hover;
+  S.hover = hitAt(pt, 2/(S.ppm||3));
+  if(S.hover === was) return;
+  const old = $('hoverg'); if(old) old.remove();
+  const v = $('view');
+  if(!v) return;
+  // A guide is drawn above the artwork in a layer of its own, so its highlight
+  // belongs there too — swap that one layer rather than rebuild the canvas.
+  if((S.hover && S.hover.guide) || (was && was.guide)){
+    const g0 = $('guideg');
+    if(g0){
+      const fresh = guideLayer('guideg', S.guides.filter(q => !S.sel.has(q)), n => n/(S.ppm||3));
+      v.insertBefore(fresh, g0); g0.remove();
+    }
+  }
+  if(!S.hover || S.sel.has(S.hover) || S.hover.guide) return;
+  const g = el('g',{ id:'hoverg', 'pointer-events':'none' });
+  g.appendChild(selMark(S.hover, n => n/(S.ppm||3), true));
+  v.insertBefore(g, $('artg'));
+}
+
+// The marker that says what the pointer caught. Transient, so it is painted
+// straight into the live view and wiped by the next render.
+function paintSnap(s){
+  const old = $('snapg'); if(old) old.remove();
+  const v = $('view');
+  if(!v || !s || !s.k) return;
+  const px = n => n/(S.ppm||3), c = SNAP_COL[s.k], h = px(4.5), w = px(1.7);
+  const g = el('g',{ id:'snapg', 'pointer-events':'none' });
+  if(s.k==='mid')
+    g.appendChild(el('path',{ d:`M${s.x-h} ${s.y+h}L${s.x} ${s.y-h}L${s.x+h} ${s.y+h}Z`,
+      fill:'none', stroke:c, 'stroke-width':w }));
+  else if(s.k==='centre' || s.k==='bed')
+    g.appendChild(el('circle',{ cx:s.x, cy:s.y, r:h, fill:'none', stroke:c, 'stroke-width':w }));
+  else if(s.k==='edge')
+    g.appendChild(el('path',{ d:`M${s.x-h} ${s.y}L${s.x+h} ${s.y}M${s.x} ${s.y-h}L${s.x} ${s.y+h}`,
+      fill:'none', stroke:c, 'stroke-width':w }));
+  else
+    g.appendChild(el('rect',{ x:s.x-h, y:s.y-h, width:h*2, height:h*2, fill:'none', stroke:c, 'stroke-width':w }));
+  const t = el('text',{ x:s.x+px(9), y:s.y-px(7), fill:c, 'font-size':px(10) });
+  t.textContent = SNAP_LABEL[s.k];
+  g.appendChild(t);
+  v.appendChild(g);
+}
+
+// Shift locks the gesture: 45° steps for a line, a true square or circle for the
+// rest. It replaces the old 5 mm rounding on a draw, which typing a size does
+// better — and a locked axis is the thing you actually reach for mid-drag.
+function axisLock(a, b, kind){
+  if(kind==='line'){
+    const L = Math.hypot(b.x-a.x, b.y-a.y);
+    const ang = Math.round(Math.atan2(b.y-a.y, b.x-a.x)/(Math.PI/4))*(Math.PI/4);
+    return { x:a.x+Math.cos(ang)*L, y:a.y+Math.sin(ang)*L };
+  }
+  const d = Math.max(Math.abs(b.x-a.x), Math.abs(b.y-a.y));
+  return { x:a.x+(b.x<a.x?-d:d), y:a.y+(b.y<a.y?-d:d) };
+}
+// A line within a couple of pixels of flat was meant to be flat.
+function softAxis(a, b){
+  const t = 3/(S.ppm||3);
+  if(Math.abs(b.y-a.y) < t && Math.abs(b.x-a.x) > t) return { x:b.x, y:a.y };
+  if(Math.abs(b.x-a.x) < t && Math.abs(b.y-a.y) > t) return { x:a.x, y:b.y };
+  return b;
+}
+
+const angOf = (a,b) => { let A = -Math.atan2(b.y-a.y, b.x-a.x)*180/Math.PI; return A<0 ? A+360 : A; };
+// What the gesture currently measures, for the dimension box.
+function dimText(kind, a, b){
+  const w = Math.abs(b.x-a.x), h = Math.abs(b.y-a.y);
+  if(kind==='polygon')
+    return (Math.max(3, Math.min(24, S.polyN)))+' sides · ⌀ '+r1(Math.hypot(b.x-a.x, b.y-a.y)*2)+' mm';
+  if(kind==='arc' && pend && pend.step===1){
+    const R = arcRadius(a, b, pend.mid);
+    return R ? 'R '+r1(R)+' mm' : 'straight';
+  }
+  if(kind==='line' || kind==='tape' || kind==='arc')
+    return r1(Math.hypot(b.x-a.x, b.y-a.y))+' mm   ∠'+Math.round(angOf(a,b))+'°';
+  if(kind==='circle' && Math.abs(w-h)<.05) return '⌀ '+r1(w)+' mm';
+  return r1(w)+' × '+r1(h)+' mm';
+}
+
+// "40,25" -> 40 × 25. Also 40x25 and 40 25, and a bare 40 for a square or a
+// circle. A line takes a length, a length<angle, or a plain dx,dy.
+function parseDims(str, kind){
+  const s = String(str).trim().replace(/mm/gi,'').replace(/°/g,'');
+  if(!s) return null;
+  const nums = s.split(/[,x×\s<∠]+/).map(parseFloat).filter(n=>isFinite(n));
+  if(!nums.length) return null;
+  if(kind==='line'){
+    if(nums.length>1 && /[<∠]/.test(s)) return { len:Math.abs(nums[0]), ang:nums[1] };
+    if(nums.length>1) return { dx:nums[0], dy:nums[1] };
+    return nums[0] ? { len:Math.abs(nums[0]) } : null;
+  }
+  const w = Math.abs(nums[0]), h = nums.length>1 ? Math.abs(nums[1]) : w;
+  return (w>0.01 && h>0.01) ? { w, h } : null;
+}
+
+// Apply a typed size, keeping the corner the drag started from exactly where it
+// is — so correcting a shape never also walks it across the bed.
+function applyDims(d, v){
+  if(d.kind==='line'){
+    if(v.dx!=null){ d.w = v.dx; d.h = v.dy; return true; }
+    const ang = v.ang!=null ? -v.ang*Math.PI/180 : Math.atan2(d.h, d.w);
+    d.w = Math.cos(ang)*v.len; d.h = Math.sin(ang)*v.len;
+    return true;
+  }
+  if(!v.w) return false;
+  if(d.kind==='poly'){ scalePoly(d, v.w, v.h); return true; }
+  const a = S.dimRef || { x:Math.min(d.x,d.x+d.w), y:Math.min(d.y,d.y+d.h), sx:1, sy:1 };
+  d.x = a.x; d.y = a.y; d.w = v.w*a.sx; d.h = v.h*a.sy;
+  return true;
+}
+
+// --- the dimension box ---------------------------------------------------
+let dimArmed = null;            // the shape a typed number would resize, if any
+const dimIn = () => $('dimIn');
+// Mid-gesture: a read-out, not a field. Nothing to type into yet.
+function dimLive(text, hint){
+  $('dimbox').hidden = false;
+  $('dimLbl').textContent = text;
+  dimIn().hidden = true;
+  $('dimHint').textContent = hint || '';
+}
+function dimOff(){ dimArmed = null; $('dimbox').hidden = true; dimIn().hidden = true; }
+// One drawn shape selected: the box becomes a field, pre-filled with what it is
+// now, and any digit typed on the stage lands in it.
+function armDim(){
+  const one = S.sel.size===1 ? [...S.sel][0] : null;
+  if(!one || !one.drawn){ dimOff(); return; }
+  dimArmed = one;
+  const b = boxOf(one), line = one.kind==='line';
+  S.dimRef = { x:b.x, y:b.y, sx:1, sy:1 };
+  $('dimbox').hidden = false;
+  $('dimLbl').textContent = line ? 'Length' : one.kind==='circle' ? 'Size ⌀' : 'Size';
+  $('dimHint').textContent = line ? 'length, or 60<30 for an angle — Enter'
+    : 'width,height — Enter';
+  const i = dimIn();
+  i.hidden = false;
+  i.value = line ? r1(Math.hypot(one.w, one.h))
+          : (Math.abs(b.w-b.h) < .05 ? r1(b.w) : r1(b.w)+','+r1(b.h));
+}
+function dimCommit(){
+  // Deleted, or undone, between arming the box and pressing Enter.
+  if(dimArmed && !S.drawn.includes(dimArmed)) dimOff();
+  if(!dimArmed) return;
+  const v = parseDims(dimIn().value, dimArmed.kind);
+  if(!v) return;
+  const d = dimArmed;
+  pushUndo();
+  if(applyDims(d, v)){ setSel([d]); refresh(); }
+  dimIn().blur();
+}
+dimIn().addEventListener('keydown', e => {
+  if(e.key==='Enter'){
+    e.preventDefault();
+    if(pend){ if(pendTyped(dimIn().value)) dimIn().blur(); }
+    else dimCommit();
+  } else if(e.key==='Escape'){
+    e.preventDefault(); dimIn().blur();
+    if(pend){ pendCancel(); dimOff(); renderCanvas(); }
+  }
+});
+
+// --- click, click, or type: a shape in progress ---------------------------
+// SketchUp's rhythm, which is what makes it teachable: click where the shape
+// starts, move, click where it ends — and at any point in between type the size
+// and press Enter instead. Press-and-drag still works for whoever prefers it;
+// the two are the same gesture, told apart by whether the pointer travelled.
+let pend = null;        // { kind, a, b, ghost, c0, typing }
+const DRAG_PX = 4;      // further than this between press and release = a drag
+
+const ptsPath = (pts, shut) => 'M'+pts.map(p => r3(p.x)+' '+r3(p.y)).join('L')+(shut?'Z':'');
+const PATH_TOOLS = new Set(['polygon','arc']);
+// The radius of the circle through three points, for the readout while bending.
+function arcRadius(a, thru, b){
+  const d = 2*(a.x*(thru.y-b.y) + thru.x*(b.y-a.y) + b.x*(a.y-thru.y));
+  if(Math.abs(d) < 1e-9) return 0;
+  const sa=a.x*a.x+a.y*a.y, sp=thru.x*thru.x+thru.y*thru.y, sb=b.x*b.x+b.y*b.y;
+  const cx=(sa*(thru.y-b.y)+sp*(b.y-a.y)+sb*(a.y-thru.y))/d;
+  const cy=(sa*(b.x-thru.x)+sp*(a.x-b.x)+sb*(thru.x-a.x))/d;
+  const R = Math.hypot(a.x-cx, a.y-cy);
+  return isFinite(R) && R < 1e6 ? R : 0;
+}
+
+function pendStart(kind, a, e){
+  pendCancel();
+  const px = n => n/(S.ppm||3);
+  const line = kind==='line' || kind==='tape';
+  const col = kind==='tape' ? '#a78bfa' : '#f8485e';
+  const ghost = PATH_TOOLS.has(kind)
+    ? el('path',{ d:'', fill:kind==='polygon' ? 'rgba(248,72,94,.10)' : 'none',
+                  stroke:col, 'stroke-width':px(1.3), 'pointer-events':'none' })
+    : line
+    ? el('line',{ x1:a.x, y1:a.y, x2:a.x, y2:a.y, stroke:col,
+                  'stroke-width':px(1.3), 'pointer-events':'none' })
+    : el(kind==='circle' ? 'ellipse' : 'rect',{ fill:'rgba(248,72,94,.10)',
+                  stroke:col, 'stroke-width':px(1.2), 'pointer-events':'none' });
+  pend = { kind, a:{ x:a.x, y:a.y }, b:{ x:a.x, y:a.y }, ghost, step:0, mid:null,
+           c0:{ x:e.clientX, y:e.clientY }, typing:false };
+  pendPaint();
+  paintSnap(a.k ? a : null);
+  dimLive(dimText(kind, a, a), kind==='tape' ? 'click again to leave a guide'
+                                             : 'click again, or type a size and press Enter');
+}
+function pendCancel(){
+  if(!pend) return;
+  pend.ghost.remove();
+  pend = null;
+  paintSnap(null);
+}
+function pendPaint(){
+  const v = $('view');
+  if(!v || !pend) return;
+  if(!pend.ghost.isConnected) v.appendChild(pend.ghost);
+  const a = pend.a, b = pend.b, g = pend.ghost;
+  if(pend.kind==='rect'){
+    g.setAttribute('x', Math.min(a.x,b.x)); g.setAttribute('y', Math.min(a.y,b.y));
+    g.setAttribute('width', Math.abs(b.x-a.x)); g.setAttribute('height', Math.abs(b.y-a.y));
+  } else if(pend.kind==='circle'){
+    g.setAttribute('cx', (a.x+b.x)/2); g.setAttribute('cy', (a.y+b.y)/2);
+    g.setAttribute('rx', Math.abs(b.x-a.x)/2); g.setAttribute('ry', Math.abs(b.y-a.y)/2);
+  } else if(pend.kind==='polygon'){
+    g.setAttribute('d', ptsPath(pendNgon(), true));
+  } else if(pend.kind==='arc'){
+    g.setAttribute('d', ptsPath(pend.step===0 ? [a,b] : arcPts(a, b, pend.mid), false));
+  } else {
+    g.setAttribute('x2', b.x); g.setAttribute('y2', b.y);
+  }
+}
+const pendNgon = () => ngon(pend.a, Math.hypot(pend.b.x-pend.a.x, pend.b.y-pend.a.y),
+  Math.max(3, Math.min(24, S.polyN)), Math.atan2(pend.b.y-pend.a.y, pend.b.x-pend.a.x));
+
+// The free end follows the pointer whether or not a button is held down.
+function pendUpdate(p, e){
+  if(!pend) return;
+  const s = snapPt(p, e);
+  const lineish = pend.kind==='line' || pend.kind==='tape'
+               || pend.kind==='polygon' || pend.kind==='arc';
+  pend.b = e.shiftKey ? axisLock(pend.a, s, lineish ? 'line' : pend.kind)
+         : (lineish && !s.k) ? softAxis(pend.a, s) : { x:s.x, y:s.y };
+  paintSnap(e.shiftKey ? null : s);
+  pendPaint();
+  if(!pend.typing)
+    dimLive(dimText(pend.kind, pend.a, pend.b),
+      pend.kind==='tape' ? 'click again to leave a guide' : 'click again, or type a size and press Enter');
+}
+// Enough of a shape to be worth keeping?
+const pendReal = () => pend && (Math.abs(pend.b.x-pend.a.x) > 0.5 || Math.abs(pend.b.y-pend.a.y) > 0.5);
+
+function pendCommit(){
+  if(!pend) return;
+  const { kind, a, b } = pend;
+  // An arc takes three clicks: both ends, then the bend. The middle click only
+  // pins the far end down and hands the pointer over to bending it.
+  if(kind==='arc' && pend.step===0){
+    if(!pendReal()) return;
+    pend.mid = { ...pend.b };
+    pend.step = 1; pend.typing = false;
+    pendPaint();
+    dimLive('straight', 'click to bend it, or type a radius');
+    return;
+  }
+  if(kind==='tape'){
+    pushUndo();
+    // A measured run leaves a construction line; a click that went nowhere
+    // leaves the point it caught. Either way it is scaffolding, never geometry.
+    // guide:true is what every other piece of code tests to know this is
+    // scaffolding and not work: it survives the undo snapshot's round trip
+    // through JSON, which an instanceof or a separate list could not.
+    if(pendReal()) S.guides.push({ guide:true, k:'l', x:a.x, y:a.y, x2:b.x, y2:b.y });
+    else           S.guides.push({ guide:true, k:'p', x:a.x, y:a.y });
+    pendCancel(); dimOff(); refresh();
+    return;
+  }
+  if(kind!=='arc' && !pendReal()) return;  // first click of a click-click: nothing to keep yet
+  pushUndo();
+  const d = kind==='polygon' ? newPoly([pendNgon()])
+    : kind==='arc' ? newPoly([arcPts(a, b, pend.mid)])
+    : kind==='line'
+    ? { drawn:true, kind:'line', id:S.nextId++, op:'cut',
+        x:a.x, y:a.y, w:b.x-a.x, h:b.y-a.y }
+    : { drawn:true, kind, id:S.nextId++, op:'cut',
+        x:Math.min(a.x,b.x), y:Math.min(a.y,b.y),
+        w:Math.abs(b.x-a.x), h:Math.abs(b.y-a.y) };
+  S.drawn.push(d);
+  // A size typed afterwards keeps the corner the shape STARTED from, so
+  // correcting it resizes the shape rather than walking it across the bed.
+  const ref = { x:a.x, y:a.y, sx:b.x<a.x ? -1 : 1, sy:b.y<a.y ? -1 : 1 };
+  pendCancel();
+  // The tool stays put, so a row of holes is a row of clicks rather than a trip
+  // back to the rail between each one. Escape, or V, goes back to selecting.
+  setSel([d]);
+  S.dimRef = ref;
+  syncLive(); refresh();
+}
+// A size typed mid-gesture puts the free end where the numbers say, in the
+// direction the pointer is already pointing, and finishes the shape there.
+function pendTyped(str){
+  if(!pend) return false;
+  const a = pend.a;
+  // An arc being bent takes a radius, which decides the bulge for a chord that
+  // is already fixed; it bends towards whichever side the pointer is on.
+  if(pend.kind==='arc' && pend.step===1){
+    const R = Math.abs(parseFloat(str));
+    if(!isFinite(R) || !R) return false;
+    const m = pend.mid;
+    const side = Math.sign((m.x-a.x)*(pend.b.y-a.y) - (m.y-a.y)*(pend.b.x-a.x)) || 1;
+    const pts = arcByRadius(a, m, R, -side);
+    if(!pts) return false;
+    pushUndo();
+    const d = newPoly([pts]);
+    S.drawn.push(d);
+    pendCancel();
+    setSel([d]); syncLive(); refresh();
+    return true;
+  }
+  if(pend.kind==='polygon'){
+    const n = Math.abs(parseFloat(str));
+    if(!isFinite(n) || n <= 0) return false;
+    const ang = Math.atan2(pend.b.y-a.y, pend.b.x-a.x);
+    pend.b = { x:a.x+Math.cos(ang)*n/2, y:a.y+Math.sin(ang)*n/2 };   // typed across the corners
+    pendCommit();
+    return true;
+  }
+  const lineish = pend.kind==='line' || pend.kind==='tape' || pend.kind==='arc';
+  const v = parseDims(str, lineish ? 'line' : pend.kind);
+  if(!v) return false;
+  if(lineish){
+    if(v.dx!=null) pend.b = { x:a.x+v.dx, y:a.y+v.dy };
+    else {
+      const ang = v.ang!=null ? -v.ang*Math.PI/180
+                              : Math.atan2(pend.b.y-a.y, pend.b.x-a.x);
+      pend.b = { x:a.x+Math.cos(ang)*v.len, y:a.y+Math.sin(ang)*v.len };
+    }
+  } else {
+    pend.b = { x:a.x + v.w*(pend.b.x<a.x ? -1 : 1), y:a.y + v.h*(pend.b.y<a.y ? -1 : 1) };
+  }
+  pendCommit();
+  return true;
+}
+// Hand the value box over to the keyboard, mid-gesture, on the first digit.
+function dimAsk(key){
+  if(!pend) return;
+  pend.typing = true;
+  const arcBend = pend.kind==='arc' && pend.step===1;
+  const line = pend.kind==='line' || pend.kind==='tape' || pend.kind==='arc';
+  $('dimbox').hidden = false;
+  $('dimLbl').textContent = arcBend ? 'Radius'
+    : pend.kind==='polygon' ? 'Across ⌀'
+    : line ? 'Length' : pend.kind==='circle' ? 'Size ⌀' : 'Size';
+  $('dimHint').textContent = arcBend ? 'radius in mm — Enter'
+    : pend.kind==='polygon' ? 'across the corners — Enter'
+    : line ? 'length, or 60<30 for an angle — Enter' : 'width,height — Enter';
+  const i = dimIn();
+  i.hidden = false; i.value = key; i.focus();
+  try{ i.setSelectionRange(2,2); }catch(err){}
+}
+
+// --- guides ---------------------------------------------------------------
+const guideLen = g => Math.hypot(g.x2-g.x, g.y2-g.y);
+// One layerful of guides. Violet on purpose: blue is the score pen, and a guide
+// that looks like a score line is a guide that gets cut. A selected one goes
+// solid, pale and thicker with its ends pinned, because the dashes it shares
+// with every other guide are no way to say which one Delete will take.
+function guideLayer(id, list, px){
+  const gg = el('g',{ id, 'pointer-events':'none' });
+  for(const q of list){
+    const on = S.sel.has(q), hot = !on && S.hover===q;
+    const col = on ? '#e6ddff' : '#a78bfa';
+    if(q.k==='p'){
+      const r = px(on ? 6.5 : 5);
+      gg.appendChild(el('path',{ fill:'none', stroke:col, 'stroke-width':px(on ? 2.2 : hot ? 1.8 : 1.3),
+        d:`M${q.x-r} ${q.y}L${q.x+r} ${q.y}M${q.x} ${q.y-r}L${q.x} ${q.y+r}` }));
+      continue;
+    }
+    const ln = el('line',{ x1:q.x, y1:q.y, x2:q.x2, y2:q.y2, stroke:col,
+      'stroke-width':px(on ? 2 : hot ? 1.5 : 1), opacity: on || hot ? 1 : .85 });
+    if(!on) ln.setAttribute('stroke-dasharray', px(5)+' '+px(4));
+    gg.appendChild(ln);
+    if(on) for(const [x,y] of [[q.x,q.y],[q.x2,q.y2]])
+      gg.appendChild(el('circle',{ cx:x, cy:y, r:px(2.6), fill:col }));
+    const t = el('text',{ x:(q.x+q.x2)/2, y:(q.y+q.y2)/2-px(on ? 7 : 5), fill:col,
+      'font-size':px(10), 'text-anchor':'middle' });
+    t.textContent = round(guideLen(q))+' mm';
+    gg.appendChild(t);
+  }
+  return gg;
+}
+function clearGuides(){
+  if(!S.guides.length) return;
+  pushUndo();
+  S.guides = [];
+  refresh();
+}
+function syncGuides(){
+  $('secGuides').hidden = !S.guides.length;
+  $('guideCount').textContent = S.guides.length;
+}
+
+/* ============ 2D shape tools: arcs, polygons, corners, offset ============ */
+// Everything these make is a baked outline — the same thing the tracer
+// produces — so hit testing, snapping, export, undo and the size fields all
+// work on it without knowing anything new.
+const r3 = n => Math.round(n*1000)/1000;
+const ringArea = r => {
+  let a = 0;
+  for(let i=0, j=r.length-1; i<r.length; j=i++) a += (r[j].x*r[i].y - r[i].x*r[j].y);
+  return a/2;
+};
+const isShut = r => r.length>2 &&
+  Math.abs(r[0].x-r[r.length-1].x) < 1e-6 && Math.abs(r[0].y-r[r.length-1].y) < 1e-6;
+
+// Any drawn shape as absolute-millimetre rings, so one piece of maths can
+// serve a rectangle, a circle, a line and a traced outline alike.
+function ringsOf(d){
+  const ox = d.x||0, oy = d.y||0;
+  if(d.kind==='poly') return d.polys.map(r => r.map(p => ({ x:p.x+ox, y:p.y+oy })));
+  if(d.kind==='line') return [[{ x:d.x, y:d.y }, { x:d.x+d.w, y:d.y+d.h }]];
+  const b = boxOf(d);
+  if(d.kind==='rect') return [[{x:b.x,y:b.y},{x:b.x+b.w,y:b.y},{x:b.x+b.w,y:b.y+b.h},
+                               {x:b.x,y:b.y+b.h},{x:b.x,y:b.y}]];
+  const cx=b.x+b.w/2, cy=b.y+b.h/2, rx=b.w/2, ry=b.h/2;
+  const n = Math.max(32, Math.min(180, Math.round(Math.max(rx,ry)*3)));
+  const r = [];
+  for(let i=0;i<=n;i++){ const a=i/n*Math.PI*2; r.push({ x:cx+Math.cos(a)*rx, y:cy+Math.sin(a)*ry }); }
+  return [r];
+}
+// Turn a shape into those rings, in place, keeping who it is.
+function becomePoly(d, rings){
+  d.kind = 'poly'; d.x = 0; d.y = 0;
+  d.w = 0; d.h = 0;
+  d.polys = rings.filter(r => r.length>1).map(r => r.map(p => ({ x:r3(p.x), y:r3(p.y) })));
+  S.polyRev++;
+  return d;
+}
+function newPoly(rings, op, grp){
+  const d = { drawn:true, kind:'poly', id:S.nextId++, op:op||'cut', x:0, y:0, w:0, h:0,
+              polys:[], grp:grp||null };
+  return becomePoly(d, rings);
+}
+
+// A regular polygon, first point in the direction you dragged.
+function ngon(c, r, n, rot){
+  const out = [];
+  for(let i=0;i<=n;i++){ const a = rot + i/n*Math.PI*2; out.push({ x:c.x+Math.cos(a)*r, y:c.y+Math.sin(a)*r }); }
+  return out;
+}
+// The arc through three points. Collinear ones make a straight line, which is
+// the honest answer rather than a circle of infinite radius.
+function arcPts(a, thru, b){
+  const d = 2*(a.x*(thru.y-b.y) + thru.x*(b.y-a.y) + b.x*(a.y-thru.y));
+  if(Math.abs(d) < 1e-9) return [a, b];
+  const sa = a.x*a.x+a.y*a.y, sp = thru.x*thru.x+thru.y*thru.y, sb = b.x*b.x+b.y*b.y;
+  const c = { x:(sa*(thru.y-b.y) + sp*(b.y-a.y) + sb*(a.y-thru.y))/d,
+              y:(sa*(b.x-thru.x) + sp*(a.x-b.x) + sb*(thru.x-a.x))/d };
+  const r = Math.hypot(a.x-c.x, a.y-c.y);
+  if(!isFinite(r) || r > 1e6) return [a, b];
+  const ang = p => Math.atan2(p.y-c.y, p.x-c.x);
+  const norm = t => { while(t<0) t += Math.PI*2; while(t >= Math.PI*2) t -= Math.PI*2; return t; };
+  const a0 = ang(a);
+  let sweep = norm(ang(b)-a0);
+  if(norm(ang(thru)-a0) > sweep) sweep -= Math.PI*2;    // the long way round, through the point
+  const steps = Math.max(8, Math.min(240, Math.ceil(Math.abs(sweep)/0.1)));
+  const out = [];
+  for(let i=0;i<=steps;i++){ const t = a0 + sweep*i/steps; out.push({ x:c.x+Math.cos(t)*r, y:c.y+Math.sin(t)*r }); }
+  return out;
+}
+// The arc of a given radius between two points, bulging towards where the
+// pointer is — what typing a radius mid-arc has to mean.
+function arcByRadius(a, b, R, side){
+  const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+  const dx=b.x-a.x, dy=b.y-a.y, half=Math.hypot(dx,dy)/2;
+  if(!half || R < half) return null;
+  const h = R - Math.sqrt(R*R - half*half);
+  const nx = -dy/(half*2), ny = dx/(half*2);
+  return arcPts(a, { x:mx+nx*h*side, y:my+ny*h*side }, b);
+}
+
+// Rounded or cut corners, applied to every corner of the shape at once.
+// Picking individual edges needs an edge-picking tool; for a rectangle, a
+// traced letter or a polygon, "all of them" is what is wanted anyway.
+function cornerRing(r, amt, round){
+  const shut = isShut(r);
+  const pts = shut ? r.slice(0,-1) : r.slice();
+  const n = pts.length;
+  if(n < 3 || amt <= 0) return r;
+  const out = [];
+  for(let i=0;i<n;i++){
+    const v = pts[i];
+    if(!shut && (i===0 || i===n-1)){ out.push(v); continue; }
+    const a = pts[(i-1+n)%n], b = pts[(i+1)%n];
+    const ax=a.x-v.x, ay=a.y-v.y, bx=b.x-v.x, by=b.y-v.y;
+    const la=Math.hypot(ax,ay), lb=Math.hypot(bx,by);
+    if(!la || !lb){ out.push(v); continue; }
+    const ua={x:ax/la,y:ay/la}, ub={x:bx/lb,y:by/lb};
+    const theta = Math.acos(Math.max(-1, Math.min(1, ua.x*ub.x + ua.y*ub.y)));
+    if(theta > Math.PI*0.96 || theta < 0.04){ out.push(v); continue; }   // already straight
+    let t = round ? amt/Math.tan(theta/2) : amt;
+    t = Math.min(t, la*0.5, lb*0.5);
+    const p1 = { x:v.x+ua.x*t, y:v.y+ua.y*t }, p2 = { x:v.x+ub.x*t, y:v.y+ub.y*t };
+    if(!round){ out.push(p1, p2); continue; }
+    const rad = t*Math.tan(theta/2);
+    const bis = { x:ua.x+ub.x, y:ua.y+ub.y };
+    const lbis = Math.hypot(bis.x,bis.y) || 1;
+    const cc = { x:v.x + bis.x/lbis*(rad/Math.sin(theta/2)),
+                 y:v.y + bis.y/lbis*(rad/Math.sin(theta/2)) };
+    const a1 = Math.atan2(p1.y-cc.y, p1.x-cc.x);
+    let da = Math.atan2(p2.y-cc.y, p2.x-cc.x) - a1;
+    while(da >  Math.PI) da -= Math.PI*2;
+    while(da < -Math.PI) da += Math.PI*2;
+    const steps = Math.max(2, Math.ceil(Math.abs(da)/0.3));
+    for(let k=0;k<=steps;k++){ const ang=a1+da*k/steps; out.push({ x:cc.x+Math.cos(ang)*rad, y:cc.y+Math.sin(ang)*rad }); }
+  }
+  if(shut && out.length) out.push({ ...out[0] });
+  return out;
+}
+
+// A ring pushed out (or pulled in) by a fixed distance. Honest about its
+// limits: each edge is moved and the corners re-cut, with no unpicking of the
+// loops a deep concave corner can tie in itself.
+function offsetRing(r, dist){
+  const shut = isShut(r);
+  const pts = shut ? r.slice(0,-1) : r.slice();
+  const n = pts.length;
+  if(n < 2) return r;
+  const cross = (e0,e1) => {
+    const d0x=e0.q.x-e0.p.x, d0y=e0.q.y-e0.p.y, d1x=e1.q.x-e1.p.x, d1y=e1.q.y-e1.p.y;
+    const den = d0x*d1y - d0y*d1x;
+    if(Math.abs(den) < 1e-9) return null;
+    const t = ((e1.p.x-e0.p.x)*d1y - (e1.p.y-e0.p.y)*d1x)/den;
+    return { x:e0.p.x+d0x*t, y:e0.p.y+d0y*t };
+  };
+  const build = sign => {
+    const edges = [];
+    const last = shut ? n : n-1;
+    for(let i=0;i<last;i++){
+      const p = pts[i], q = pts[(i+1)%n];
+      const dx=q.x-p.x, dy=q.y-p.y, L=Math.hypot(dx,dy);
+      if(L < 1e-9) continue;
+      const nx = -dy/L*dist*sign, ny = dx/L*dist*sign;
+      edges.push({ p:{x:p.x+nx,y:p.y+ny}, q:{x:q.x+nx,y:q.y+ny} });
+    }
+    if(!edges.length) return r;
+    const out = [];
+    if(!shut) out.push(edges[0].p);
+    for(let i=(shut?0:1); i<edges.length; i++){
+      const e0 = edges[(i-1+edges.length)%edges.length], e1 = edges[i];
+      const x = cross(e0,e1);
+      // A spike where two edges nearly double back is worse than a blunt corner.
+      if(!x || Math.hypot(x.x-e1.p.x, x.y-e1.p.y) > Math.abs(dist)*4){ out.push(e0.q, e1.p); }
+      else out.push(x);
+    }
+    if(!shut) out.push(edges[edges.length-1].q);
+    else if(out.length) out.push({ ...out[0] });
+    return out;
+  };
+  if(!shut) return build(1);
+  // Which way is "out" depends on which way round the ring runs, and a traced
+  // outline, a hole and a hand-drawn polygon do not agree about that. Rather
+  // than guess from the winding, build it and check: growing must make the
+  // shape bigger, and if it did the opposite the ring runs the other way.
+  const a0 = Math.abs(ringArea(pts));
+  const first = build(1);
+  const a1 = Math.abs(ringArea(first));
+  return ((dist > 0) === (a1 > a0)) ? first : build(-1);
+}
+
+/* ---- what the buttons do to a selection ---- */
+const drawnSel = () => selList().filter(o => o.drawn);
+function selBox(){ return unionBox(drawnSel()); }
+
+function reshape(d, fn){
+  if(d.kind==='poly' || d.kind==='circle' || d.kind==='rect' || d.kind==='line')
+    becomePoly(d, ringsOf(d).map(fn));
+}
+function selFlip(axis){
+  const list = drawnSel(); if(!list.length) return;
+  pushUndo();
+  const u = selBox(), c = { x:u.x+u.w/2, y:u.y+u.h/2 };
+  const f = p => axis==='x' ? { x:2*c.x-p.x, y:p.y } : { x:p.x, y:2*c.y-p.y };
+  for(const d of list){
+    // A rectangle or a circle mirrored about its own centre is itself; only
+    // its place in the group changes, so there is no need to bake it down.
+    if(d.kind==='rect' || d.kind==='circle'){
+      const b = boxOf(d);
+      d.x = axis==='x' ? 2*c.x-(b.x+b.w) : b.x;
+      d.y = axis==='y' ? 2*c.y-(b.y+b.h) : b.y;
+      d.w = b.w; d.h = b.h;
+    } else if(d.kind==='line'){
+      const a = f({x:d.x,y:d.y}), e = f({x:d.x+d.w,y:d.y+d.h});
+      d.x=a.x; d.y=a.y; d.w=e.x-a.x; d.h=e.y-a.y;
+    } else reshape(d, r => r.map(f));
+  }
+  refresh();
+}
+function selRotate(deg){
+  const list = drawnSel(); if(!list.length) return;
+  pushUndo();
+  const u = selBox(), c = { x:u.x+u.w/2, y:u.y+u.h/2 };
+  const t = deg*Math.PI/180, cs = Math.cos(t), sn = Math.sin(t);
+  const f = p => ({ x:c.x + (p.x-c.x)*cs - (p.y-c.y)*sn, y:c.y + (p.x-c.x)*sn + (p.y-c.y)*cs });
+  for(const d of list){
+    if(d.kind==='line'){
+      const a = f({x:d.x,y:d.y}), e = f({x:d.x+d.w,y:d.y+d.h});
+      d.x=a.x; d.y=a.y; d.w=e.x-a.x; d.h=e.y-a.y;
+    } else if((d.kind==='rect' || d.kind==='circle') && Math.abs(deg%90) < 1e-9){
+      // A right angle keeps a box a box: swap the sides about the same centre.
+      const b = boxOf(d), bc = f({ x:b.x+b.w/2, y:b.y+b.h/2 });
+      const w = Math.abs(deg%180) < 1e-9 ? b.w : b.h, h = Math.abs(deg%180) < 1e-9 ? b.h : b.w;
+      d.x = bc.x-w/2; d.y = bc.y-h/2; d.w = w; d.h = h;
+    } else reshape(d, r => r.map(f));
+  }
+  refresh();
+}
+function selScale(k){
+  const list = drawnSel();
+  if(!list.length || !(k>0) || k===1) return;
+  pushUndo();
+  const u = selBox(), c = { x:u.x+u.w/2, y:u.y+u.h/2 };
+  const f = p => ({ x:c.x+(p.x-c.x)*k, y:c.y+(p.y-c.y)*k });
+  for(const d of list){
+    if(d.kind==='line'){
+      const a = f({x:d.x,y:d.y}), e = f({x:d.x+d.w,y:d.y+d.h});
+      d.x=a.x; d.y=a.y; d.w=e.x-a.x; d.h=e.y-a.y;
+    } else if(d.kind==='rect' || d.kind==='circle'){
+      const b = boxOf(d), tl = f({x:b.x,y:b.y});
+      d.x=tl.x; d.y=tl.y; d.w=b.w*k; d.h=b.h*k;
+    } else reshape(d, r => r.map(f));
+  }
+  refresh();
+}
+function selCorners(amt, round){
+  const list = drawnSel().filter(d => d.kind!=='circle');
+  if(!list.length || !(amt>0)) return;
+  pushUndo();
+  for(const d of list) reshape(d, r => cornerRing(r, amt, round));
+  refresh();
+}
+function selOffset(dist){
+  const list = drawnSel();
+  if(!list.length || !dist) return;
+  pushUndo();
+  for(const d of list){
+    if(d.kind==='rect'){
+      const b = boxOf(d);
+      d.x=b.x-dist; d.y=b.y-dist; d.w=Math.max(0.2,b.w+dist*2); d.h=Math.max(0.2,b.h+dist*2);
+    } else if(d.kind==='circle'){
+      const b = boxOf(d);
+      d.x=b.x-dist; d.y=b.y-dist; d.w=Math.max(0.2,b.w+dist*2); d.h=Math.max(0.2,b.h+dist*2);
+    } else reshape(d, r => offsetRing(r, dist));
+  }
+  refresh();
+}
+// Grouping: one number on each shape. Clicking any of them takes the lot, and
+// everything that already works on a selection — move, delete, duplicate,
+// flip, scale — works on the group for free.
+function selGroup(){
+  const list = drawnSel();
+  if(list.length < 2) return;
+  pushUndo();
+  const g = S.nextGrp++;
+  for(const d of list) d.grp = g;
+  setSel(list); refresh();
+}
+function selUngroup(){
+  const list = drawnSel().filter(d => d.grp);
+  if(!list.length) return;
+  pushUndo();
+  for(const d of list) d.grp = null;
+  refresh();
+}
+const expandGroups = list => {
+  const out = new Set(list);
+  const ids = new Set([...out].filter(o => o.drawn && o.grp).map(o => o.grp));
+  if(ids.size) for(const d of S.drawn) if(d.grp && ids.has(d.grp)) out.add(d);
+  return [...out];
+};
+
+/* ---- text, cut from the fonts already on the machine ---- */
+// There is no way to ask a browser for the outline of a letter, and no room
+// here for a font parser. But this tool already turns a picture into closed
+// outlines, so the text is drawn big on a canvas and put through the same
+// contour walk — which gives real closed shapes, holes in the 'o' and all.
+function textRings(text, mmTall, font, bold){
+  const PX = 180;
+  const probe = document.createElement('canvas').getContext('2d');
+  const face = (bold ? 'bold ' : '') + PX + 'px ' + font;
+  probe.font = face;
+  const w = Math.ceil(probe.measureText(text).width);
+  if(!w) return null;
+  const W = w + PX, H = Math.round(PX*2.2);
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const g = cv.getContext('2d');
+  g.fillStyle = '#fff'; g.fillRect(0,0,W,H);
+  g.font = face; g.fillStyle = '#000';
+  g.textBaseline = 'alphabetic';
+  g.fillText(text, PX/2, Math.round(H*0.7));
+  const px = g.getImageData(0,0,W,H).data;
+  const bin = new Uint8Array(W*H);
+  for(let i=0,p=0;i<W*H;i++,p+=4) bin[i] = px[p] < 128 ? 1 : 0;
+  const rings = [];
+  for(const lp of contours(bin,W,H,TRACE_HALT)){
+    if(Math.abs(polyArea(lp)) < 4) continue;
+    const r = rdpRing(lp, 0.55);
+    if(r.length < 8) continue;
+    const ring = [];
+    for(let i=0;i<r.length;i+=2) ring.push({ x:r[i], y:r[i+1] });
+    ring.push({ ...ring[0] });
+    rings.push(ring);
+  }
+  if(!rings.length) return null;
+  let x1=Infinity,y1=Infinity,x2=-Infinity,y2=-Infinity;
+  for(const r of rings) for(const p of r){
+    x1=Math.min(x1,p.x); y1=Math.min(y1,p.y); x2=Math.max(x2,p.x); y2=Math.max(y2,p.y);
+  }
+  const k = mmTall/Math.max(1, y2-y1);     // "20 mm tall" means the ink, not the em box
+  return rings.map(r => r.map(p => ({ x:(p.x-x1)*k, y:(p.y-y1)*k })));
+}
+function addText(){
+  const txt = $('txtVal').value.trim();
+  if(!txt){ $('txtVal').focus(); return; }
+  const mm = Math.max(2, +$('txtSize').value || 20);
+  let rings = null;
+  try{ rings = textRings(txt, mm, $('txtFont').value, $('txtBold').checked); }catch(e){ rings = null; }
+  if(!rings){ alert('That text could not be turned into outlines.\n\nTry a shorter word, or another font.'); return; }
+  pushUndo();
+  // Dropped in the middle of what is on screen, which is where the eye is.
+  const v = S.view || { cx:S.bed.w/2, cy:S.bed.h/2 };
+  let x2=-Infinity, y2=-Infinity;
+  for(const r of rings) for(const p of r){ x2=Math.max(x2,p.x); y2=Math.max(y2,p.y); }
+  const ox = Math.max(0, v.cx - x2/2), oy = Math.max(0, v.cy - y2/2);
+  const d = newPoly(rings.map(r => r.map(p => ({ x:p.x+ox, y:p.y+oy }))), 'engrave');
+  S.drawn.push(d);
+  setSel([d]); syncLive(); refresh();
 }
 
 /* ===================== zoom & pan ===================== */
@@ -1704,11 +3280,66 @@ const resetView = () => { S.view = null; renderCanvas(); };
 const CORNERS = [ ['tl',0,0,'nwse-resize'], ['tr',1,0,'nesw-resize'],
                   ['bl',0,1,'nesw-resize'], ['br',1,1,'nwse-resize'] ];
 
+// Cut is red, score is blue, engrave is grey and a guide is violet, so a
+// selection cannot be any of those: it is a soft white glow BEHIND the shape,
+// which leaves the shape's own colour — the thing that decides what the laser
+// does — readable on top of it.
+const SEL_COL = '#eef1f7';
+const unionBox = list => {
+  let x1=Infinity,y1=Infinity,x2=-Infinity,y2=-Infinity;
+  for(const o of list){ const b = boxOf(o);
+    x1=Math.min(x1,b.x); y1=Math.min(y1,b.y); x2=Math.max(x2,b.x+b.w); y2=Math.max(y2,b.y+b.h); }
+  return isFinite(x1) ? { x:x1, y:y1, w:x2-x1, h:y2-y1 } : { x:0, y:0, w:0, h:0 };
+};
+// Corner brackets rather than a full box: enough to say "this one", without
+// drawing a rectangle over artwork that is not rectangular.
+function bracketEl(b, px, col, hover){
+  const g = el('g',{ opacity: hover ? .4 : .85 });
+  const L = Math.max(px(4), Math.min(px(11), Math.min(b.w,b.h)/3));
+  const pad = px(3);
+  const x0 = b.x-pad, y0 = b.y-pad, x1 = b.x+b.w+pad, y1 = b.y+b.h+pad;
+  for(const [x,y,sx,sy] of [[x0,y0,1,1],[x1,y0,-1,1],[x0,y1,1,-1],[x1,y1,-1,-1]])
+    g.appendChild(el('path',{ d:`M${x+sx*L} ${y}L${x} ${y}L${x} ${y+sy*L}`,
+      fill:'none', stroke:col, 'stroke-width':px(1.7), 'stroke-linecap':'round' }));
+  return g;
+}
+// A box round a diagonal line says almost nothing about the line, and a box
+// round a circle is just a box. Anything drawn here has its real geometry to
+// hand, so the mark follows the shape itself; only the loaded design, whose
+// outline we would have to flatten to know, gets brackets.
+function selMark(o, px, hover){
+  if(o.guide) return el('g');      // a guide marks itself: see guideLayer
+  if(!o.drawn) return bracketEl(boxOf(o), px, SEL_COL, hover);
+  const g = el('g');
+  const n = drawnEl(o, 'cut', true);          // the same geometry the preview draws
+  n.setAttribute('fill','none');
+  n.setAttribute('stroke', SEL_COL);
+  // Tight enough to read as an outline of the shape rather than a cloud round
+  // it: about a pixel of white either side of the line it is marking.
+  n.setAttribute('stroke-width', px(hover ? 2.6 : 3.4));
+  n.setAttribute('stroke-linejoin','round');
+  n.setAttribute('stroke-linecap','round');
+  n.setAttribute('opacity', hover ? .5 : .95);
+  n.removeAttribute('stroke-dasharray');
+  g.appendChild(n);
+  // A line gets its ends marked as well: a glow along something one pixel wide
+  // is easy to miss, and the ends are where the next thing will snap to.
+  if(o.kind==='line' && !hover){
+    const r = px(2.4);
+    for(const [x,y] of [[o.x,o.y],[o.x+o.w,o.y+o.h]])
+      g.appendChild(el('rect',{ x:x-r, y:y-r, width:r*2, height:r*2, rx:px(.8),
+        fill:SEL_COL, opacity:.75 }));
+  }
+  return g;
+}
+
 function makeHandles(view, px){
   const g = el('g',{ id:'handles' });
   // fill:transparent (not none) so the whole box is grabbable, including gaps in the art
-  const box = el('rect',{ fill:'transparent', stroke:'rgba(248,72,94,.55)',
-    'stroke-width':px(1), 'stroke-dasharray':px(5)+' '+px(4),
+  // The frame is a grab target first and a decoration second: thin and quiet,
+  // with the knobs doing the talking.
+  const box = el('rect',{ fill:'transparent', stroke:'rgba(248,72,94,.3)',
+    'stroke-width':px(.9), 'stroke-dasharray':px(3)+' '+px(4),
     'data-move':'1', style:'cursor:move' });
   g.appendChild(box);
   const knobs = CORNERS.map(([k,,,cur]) => {
@@ -1735,7 +3366,7 @@ function makeHandles(view, px){
 }
 
 let drag = null;
-function bindStage(view, artg, handles, box0, calg){
+function bindStage(view, artg, handles, box0){
   const toMm = e => {
     const m = view.getScreenCTM(); if(!m) return { x:0, y:0 };
     const p = view.createSVGPoint(); p.x=e.clientX; p.y=e.clientY;
@@ -1756,26 +3387,89 @@ function bindStage(view, artg, handles, box0, calg){
     const corner = box0 && t.getAttribute && t.getAttribute('data-handle');
     // The check square carries its own tag so it can be grabbed with no artwork
     // loaded, which is the whole point of it being a job of its own.
-    const onCal  = !!calg && tag==='cal';
-    const move   = !!box0 && !!tag && !onCal;
-    // Anything that is not the artwork pans the view — the usual design-tool deal.
-    const pan = !corner && !move && !onCal;
-    if(pan && e.button!==0 && e.button!==1) return;
+    const onArt  = !!box0 && !!tag;
+    const pRaw = toMm(e);
+    const tol = 2/(S.ppm||3);                 // a couple of screen pixels, in mm
+    const hit = hitAt(pRaw, tol);
+
+    // Middle button and the Pan tool always pan, whatever is under the cursor.
+    const forcePan = e.button===1 || S.tool==='pan' || spaceDown;
+    let mode;
+    if(forcePan)                       mode = 'pan';
+    else if(corner)                    mode = 'scale';
+    // Dragging something already selected moves just that, which is what every
+    // design tool does and what "nudge one part" needs.
+    else if(hit && S.sel.has(hit))     mode = 'movesel';
+    // Otherwise pressing on the artwork still moves the whole design, exactly as
+    // it did before selection existed. If the pointer turns out not to have
+    // moved by the time it lifts, it was a click, and it selects instead.
+    else if(onArt)                     mode = 'move';
+    else                               mode = 'marquee';
+
+    if(mode==='pan' && e.button!==0 && e.button!==1) return;
+    if(mode!=='pan' && e.button!==0) return;
+
+    // Drawing and measuring are not drags: the shape in progress owns the
+    // gesture, so one press can start it and the next press — or a typed size —
+    // can finish it, with or without the button held down in between. A press
+    // that turns out to have travelled is handled as a drag on release.
+    if(!forcePan && (DRAW_TOOLS.has(S.tool) || S.tool==='tape')){
+      e.preventDefault();
+      // A drawn or measured gesture STARTS on a snap point as well as ending on
+      // one — a line from the middle of an edge is no use if only the far end caught.
+      const a = snapPt(pRaw, e);
+      if(pend){ pendUpdate(a, e); pendCommit(); }
+      else pendStart(S.tool, a, e);
+      // Press-or-drag is judged against the press that is still in hand. An arc
+      // takes three of them, and measuring the third against the first made
+      // every arc commit itself dead straight the instant the button came up.
+      if(pend) pend.c0 = { x:e.clientX, y:e.clientY };
+      return;
+    }
+    const p0 = pRaw;
+    // The bounds of whatever is about to move, so snapping can pull the shape
+    // itself onto a target instead of dragging the cursor onto one.
+    let selBox = null;
+    if(mode==='movesel'){
+      let x1=Infinity,y1=Infinity,x2=-Infinity,y2=-Infinity;
+      for(const o of selList()){
+        const b = boxOf(o);
+        x1=Math.min(x1,b.x); y1=Math.min(y1,b.y); x2=Math.max(x2,b.x+b.w); y2=Math.max(y2,b.y+b.h);
+      }
+      if(isFinite(x1)) selBox = { x:x1, y:y1, w:x2-x1, h:y2-y1 };
+    }
     e.preventDefault();
     // Capture is a nicety — losing it must not abort the gesture.
     try{ view.setPointerCapture(e.pointerId); }catch(err){}
     view.classList.add('dragging');
-    drag = { mode: corner?'scale':onCal?'cal':move?'move':'pan', corner, p0:toMm(e), box:box0,
-             pos:{...S.pos}, cal0:{ x:calBox().x, y:calBox().y },
+    drag = { mode, corner, p0, selBox, box:box0, hit, add:e.shiftKey,
+             pos:{...S.pos},
+             sel0:selList().map(o => o.drawn ? { o, x:o.x, y:o.y } : { o, x:o.dx||0, y:o.dy||0 }),
              mmW:S.mmW, mmH:S.mmH, moved:false,
              c0:{ x:e.clientX, y:e.clientY },
              view0:{...S.view}, mmPerPx:(S.fitBox.w/S.view.zoom)/view.getBoundingClientRect().width };
+    if(mode==='marquee'){
+      drag.ghost = el('rect',{ fill:'rgba(248,72,94,.10)', stroke:'#f8485e',
+        'stroke-width':1.2/(S.ppm||3),
+        'stroke-dasharray':(4/(S.ppm||3))+' '+(3/(S.ppm||3)), 'pointer-events':'none' });
+      view.appendChild(drag.ghost);
+    }
   });
 
   // Live dragging only rewrites two transforms. Rebuilding the whole output SVG on
   // every pointermove stutters badly on a busy Canva file.
   view.addEventListener('pointermove', e=>{
-    if(!drag) return;
+    if(!drag){
+      // A shape in progress follows the pointer with no button held. Otherwise,
+      // hovering with a drawing tool still shows what the pointer would catch,
+      // so the snap is visible before anything is committed.
+      if(pend) pendUpdate(toMm(e), e);
+      else if(DRAW_TOOLS.has(S.tool) || S.tool==='tape'){
+        const s = snapPt(toMm(e), e); paintSnap(s.k ? s : null);
+      }
+      else if(S.tool==='select') hoverAt(toMm(e));
+      return;
+    }
     drag.moved = true;
 
     if(drag.mode==='pan'){
@@ -1788,22 +3482,38 @@ function bindStage(view, artg, handles, box0, calg){
     }
     const p = toMm(e);
 
-    // The check square only ever moves — never scales. Its size is the one thing
-    // about it that must not change, since 100 mm is the whole measurement.
-    if(drag.mode==='cal'){
-      const nx = snap(drag.cal0.x + (p.x-drag.p0.x), e);
-      const ny = snap(drag.cal0.y + (p.y-drag.p0.y), e);
-      S.cal.x = Math.min(Math.max(nx,0), Math.max(0, S.bed.w-CAL_MM));
-      S.cal.y = Math.min(Math.max(ny,0), Math.max(0, S.bed.h-CAL_MM));
-      calg.setAttribute('transform',
-        `translate(${S.cal.x-drag.cal0.x} ${S.cal.y-drag.cal0.y})`);
-      setHud(drag.box, S.used);
+    if(drag.mode==='marquee'){
+      const x = Math.min(drag.p0.x, p.x), y = Math.min(drag.p0.y, p.y);
+      const w = Math.abs(p.x-drag.p0.x), h = Math.abs(p.y-drag.p0.y);
+      drag.ghost.setAttribute('x', x); drag.ghost.setAttribute('y', y);
+      drag.ghost.setAttribute('width', w); drag.ghost.setAttribute('height', h);
+      drag.rect = { x, y, w, h };
+      return;
+    }
+
+    // Moving the selection. Live feedback is a transform on the overlay plus the
+    // shapes themselves, so a busy design does not get rebuilt on every frame.
+    if(drag.mode==='movesel'){
+      const sd = snapDelta(drag.selBox, p.x-drag.p0.x, p.y-drag.p0.y, e, S.sel);
+      paintSnap(sd && sd.at);
+      const dx = sd ? sd.dx : snap(p.x-drag.p0.x, e);
+      const dy = sd ? sd.dy : snap(p.y-drag.p0.y, e);
+      drag.d = { dx, dy };
+      for(const id of ['selg','guidesel']){
+        const g = $(id);
+        if(g) g.setAttribute('transform', `translate(${dx} ${dy})`);
+      }
       return;
     }
 
     if(drag.mode==='move'){
-      const want = clampPos({ x:snap(drag.pos.x + (p.x-drag.p0.x), e),
-                              y:snap(drag.pos.y + (p.y-drag.p0.y), e) }, drag.box);
+      // The design snaps by its own edges and centre, and never to itself.
+      const sd = snapDelta(drag.box, p.x-drag.p0.x, p.y-drag.p0.y, e, ART_ONLY);
+      paintSnap(sd && sd.at);
+      const want = clampPos(sd
+        ? { x:drag.pos.x + sd.dx, y:drag.pos.y + sd.dy }
+        : { x:snap(drag.pos.x + (p.x-drag.p0.x), e),
+            y:snap(drag.pos.y + (p.y-drag.p0.y), e) }, drag.box);
       S.pos.x = want.x; S.pos.y = want.y;
       const tx = S.pos.x-drag.box.x, ty = S.pos.y-drag.box.y;
       artg.setAttribute('transform',`translate(${tx} ${ty})`);
@@ -1850,11 +3560,53 @@ function bindStage(view, artg, handles, box0, calg){
   });
 
   const end = e => {
+    // A shape in progress: letting go only finishes it if the pointer actually
+    // travelled. A press that stayed put was the FIRST of two clicks.
+    if(pend && !drag){
+      if(Math.hypot(e.clientX-pend.c0.x, e.clientY-pend.c0.y) > DRAG_PX) pendCommit();
+      return;
+    }
     if(!drag) return;
     const was = drag;
     drag = null;
     view.classList.remove('dragging');
     try{ view.releasePointerCapture(e.pointerId); }catch(err){}
+    if(was.ghost) was.ghost.remove();
+    paintSnap(null);
+
+    if(was.mode==='marquee'){
+      // A drag selects what it touched; a plain click on nothing clears.
+      if(was.moved && was.rect && (was.rect.w>0.5 || was.rect.h>0.5)){
+        const found = inMarquee(was.rect);
+        setSel(was.add ? [...S.sel, ...found] : found);
+      }
+      // A click that went nowhere still picks what it landed on, which is what
+      // the Select tool has always claimed to do and what the new size fields need.
+      else if(was.hit) setSel(was.add ? [...S.sel, was.hit] : [was.hit]);
+      else if(!was.add) clearSel();
+      return;
+    }
+    if(was.mode==='movesel'){
+      if(was.moved && was.d && (was.d.dx || was.d.dy)){
+        // The undo entry is pushed with the ORIGINAL offsets, which were captured
+        // at pointerdown — so one undo returns the shapes to where they started,
+        // not to somewhere partway through the drag.
+        const cur = was.sel0.map(s => s.o.drawn ? { o:s.o, x:s.o.x, y:s.o.y }
+                                                : { o:s.o, x:s.o.dx||0, y:s.o.dy||0 });
+        was.sel0.forEach(s => { if(s.o.drawn){ s.o.x=s.x; s.o.y=s.y; } else { s.o.dx=s.x; s.o.dy=s.y; } });
+        pushUndo();
+        cur.forEach(s => { if(s.o.drawn){ s.o.x=s.x; s.o.y=s.y; } else { s.o.dx=s.x; s.o.dy=s.y; } });
+        selNudge(was.d.dx, was.d.dy);
+        refresh();
+      } else renderCanvas();
+      return;
+    }
+    // A press on the artwork that never moved was a click, so it selects.
+    if(was.mode==='move' && !was.moved){
+      if(was.hit) setSel(was.add ? [...S.sel, was.hit] : [was.hit]);
+      else if(!was.add) clearSel();
+      return;
+    }
     if(!was.moved) return;
     // One clean rebuild at the end of the gesture. A pan changed nothing about
     // the job itself, so it only needs the canvas redrawn, not a fresh pre-flight.
@@ -1862,6 +3614,13 @@ function bindStage(view, artg, handles, box0, calg){
   };
   view.addEventListener('pointerup', end);
   view.addEventListener('pointercancel', end);
+  // A highlight left behind after the pointer has gone is just a wrong answer.
+  view.addEventListener('pointerleave', ()=>{
+    if(drag || pend) return;
+    paintSnap(null);
+    S.hover = null;
+    const h = $('hoverg'); if(h) h.remove();
+  });
 }
 
 /* ================= export ================= */
@@ -1870,21 +3629,19 @@ function download(){
   if(bad.length && !confirm('This design still has '+bad.length+' problem'+(bad.length===1?'':'s')
       +' that will spoil the job:\n\n• '+bad.map(b=>b.t).join('\n• ')+'\n\nDownload anyway?')) return;
 
-  const { svg, pageW, pageH, cal } = buildOutput(false);
+  const { svg, pageW, pageH } = buildOutput(false);
   svg.insertBefore(document.createComment(
 ` Laser Prep — job ${S.jobCode}
   Page ${round(pageW)} x ${round(pageH)} mm — material: ${S.material||''}
   Universal pen colours: CUT ${OPS.cut.pen} (Red) | SCORE ${OPS.score.pen} (Blue) | ENGRAVE ${OPS.engrave.pen} (Black)
   Vector strokes are hairline (${HAIRLINE_MM} mm). Do NOT rescale on import —
-  set the driver page size to ${round(pageW)} x ${round(pageH)} mm.${cal!==1 ? `
-  Contents are scaled ${((cal-1)*100).toFixed(2)}% on purpose, to correct a measured
-  ${round(S.cal.meas)} mm result on a 100 mm check square. Leave it alone.` : ''} `), svg.firstChild);
+  set the driver page size to ${round(pageW)} x ${round(pageH)} mm. `), svg.firstChild);
 
   const blob = new Blob(['<?xml version="1.0" encoding="UTF-8"?>\n'
     + new XMLSerializer().serializeToString(svg)], { type:'image/svg+xml' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `${safeName(S.loaded?S.name:"size-check")}-LASER-${round(pageW)}x${round(pageH)}mm.svg`;
+  a.download = `${safeName(jobName())}-LASER-${round(pageW)}x${round(pageH)}mm.svg`;
   a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),4000);
 }
@@ -1904,28 +3661,272 @@ function download(){
 // worked for the reverse reason: it sends the driver real vector pen strokes.
 //
 // A PDF carries the strokes themselves, all the way to the machine. Universal's
-// software can import PDF directly (Direct File Import, into the UCP), and
-// failing that Acrobat Reader prints PDFs to the driver as true vectors. Either
-// route skips both the browser's print pipeline and Illustrator.
+// software can in principle import one directly (Direct File Import, into the
+// UCP) — but on the VLS4.60 here that silently does nothing, exactly as EMF
+// does. Kept as a fallback for a different machine, or for Acrobat Reader,
+// which does print a PDF to the driver as true vectors. The route that works
+// here is the print bridge further down.
 //
 // So this writes the PDF by hand. No library — it is a single file that has to
 // keep working on a locked-down school PC with no network.
 const PT = 72/25.4;                 // mm -> PostScript points
 const PDF_HAIR_MM = 0.02;           // comfortably under Universal's 0.025 mm cutoff
-const FLAT_MM = 0.08;               // curve sampling step: well below the kerf
+const FLAT_MM = 0.08;               // "two points this close are the same point": under the kerf
 const SIMPLIFY_MM = 0.02;           // drop a point this close to its neighbours' line
 
 // Flatten any SVG geometry into polylines in page millimetres.
-// getPointAtLength walks a multi-subpath path continuously but does not
-// interpolate between subpaths — it jumps — so a sample landing far further than
-// one step from the last one marks the start of a separate loop. Without that
-// check every hole would be joined to its outline by a stray cut line.
-function flattenEl(node, m){
+//
+// This used to walk the element with getPointAtLength, one sample every
+// FLAT_MM. Fine on a rectangle, catastrophic on traced artwork: the browser
+// re-walks the whole path from the start on every call, so the cost is
+// (segments x samples). A traced logo of twenty-one outlines measured about a
+// millisecond per sample and wanted sixty thousand of them — a minute of dead
+// tab, which is exactly what duplicating a traced shape used to do.
+//
+// So the path data is read and the curves flattened here instead: a few
+// milliseconds for the same job, and the subpaths arrive already separated by
+// the parser rather than being guessed at from gaps between samples — holes
+// can no longer be stitched to their outline by a stray cut line.
+const PATH_SEG_MAX = 4000;          // sanity cap on one curve's straight runs
+
+// The primitives written as path data, so one flattener covers everything.
+// null means "not geometry we can read" — a <use> or live text — and sends the
+// caller to the slow sampler, which is all those ever had.
+function pathDataOf(node){
+  const A = (a,def) => { const v = parseFloat(node.getAttribute(a)); return isFinite(v) ? v : (def||0); };
+  const tag = node.nodeName.toLowerCase();
+  if(tag === 'path') return node.getAttribute('d') || '';
+  if(tag === 'line') return 'M'+A('x1')+' '+A('y1')+'L'+A('x2')+' '+A('y2');
+  if(tag === 'polyline' || tag === 'polygon'){
+    const n = (node.getAttribute('points')||'').trim().split(/[\s,]+/).map(parseFloat).filter(isFinite);
+    if(n.length < 4) return '';
+    let d = 'M'+n[0]+' '+n[1];
+    for(let i=2;i+1<n.length;i+=2) d += 'L'+n[i]+' '+n[i+1];
+    return d + (tag === 'polygon' ? 'Z' : '');
+  }
+  if(tag === 'circle' || tag === 'ellipse'){
+    const rx = tag === 'circle' ? A('r') : A('rx'), ry = tag === 'circle' ? A('r') : A('ry');
+    if(!(rx > 0) || !(ry > 0)) return '';
+    const cx = A('cx'), cy = A('cy');
+    // Two half-sweeps: one arc cannot describe a full ellipse, its endpoints coincide.
+    return 'M'+(cx-rx)+' '+cy
+         + 'A'+rx+' '+ry+' 0 1 0 '+(cx+rx)+' '+cy
+         + 'A'+rx+' '+ry+' 0 1 0 '+(cx-rx)+' '+cy+'Z';
+  }
+  if(tag === 'rect'){
+    const w = A('width'), h = A('height');
+    if(!(w > 0) || !(h > 0)) return '';
+    const x = A('x'), y = A('y');
+    // Either radius on its own stands for both, which is what the rect spec says.
+    let rx = node.hasAttribute('rx') ? A('rx') : NaN;
+    let ry = node.hasAttribute('ry') ? A('ry') : NaN;
+    if(!isFinite(rx) && !isFinite(ry)) rx = ry = 0;
+    else if(!isFinite(rx)) rx = ry;
+    else if(!isFinite(ry)) ry = rx;
+    rx = Math.min(Math.max(rx,0), w/2); ry = Math.min(Math.max(ry,0), h/2);
+    if(!rx || !ry) return 'M'+x+' '+y+'H'+(x+w)+'V'+(y+h)+'H'+x+'Z';
+    return 'M'+(x+rx)+' '+y+'H'+(x+w-rx)+'A'+rx+' '+ry+' 0 0 1 '+(x+w)+' '+(y+ry)
+         + 'V'+(y+h-ry)+'A'+rx+' '+ry+' 0 0 1 '+(x+w-rx)+' '+(y+h)
+         + 'H'+(x+rx)+'A'+rx+' '+ry+' 0 0 1 '+x+' '+(y+h-ry)
+         + 'V'+(y+ry)+'A'+rx+' '+ry+' 0 0 1 '+(x+rx)+' '+y+'Z';
+  }
+  return null;
+}
+
+// A hand-written scanner rather than a regular expression, because an arc's two
+// flags are allowed to run together with the numbers either side of them —
+// "a1 1 0 011 1" is a legal arc with flags 0 and 1 — and no single number
+// pattern can read that correctly.
+function pathCmds(d){
+  const n = d.length;
+  let i = 0;
+  const ws = c => c===32 || c===9 || c===10 || c===13 || c===12 || c===44;
+  const skip = () => { while(i < n && ws(d.charCodeAt(i))) i++; };
+  function num(){
+    skip();
+    const s = i;
+    let c = d.charCodeAt(i);
+    if(c===43 || c===45){ i++; c = d.charCodeAt(i); }
+    while(c>=48 && c<=57){ i++; c = d.charCodeAt(i); }
+    if(c===46){ i++; c = d.charCodeAt(i); while(c>=48 && c<=57){ i++; c = d.charCodeAt(i); } }
+    if(c===101 || c===69){                       // an exponent, if it really is one
+      const back = i;
+      i++; c = d.charCodeAt(i);
+      if(c===43 || c===45){ i++; c = d.charCodeAt(i); }
+      if(c>=48 && c<=57){ while(c>=48 && c<=57){ i++; c = d.charCodeAt(i); } }
+      else i = back;
+    }
+    return i===s ? NaN : parseFloat(d.slice(s,i));
+  }
+  function flag(){
+    skip();
+    const c = d.charCodeAt(i);
+    if(c===48){ i++; return 0; }
+    if(c===49){ i++; return 1; }
+    return NaN;
+  }
+  const COUNT = { m:2, l:2, h:1, v:1, c:6, s:4, q:4, t:2, a:7, z:0 };
+  const out = [];
+  let cmd = '';
+  for(;;){
+    skip();
+    if(i >= n) break;
+    const ch = d[i];
+    if(ch>='A' && ch<='Z' || ch>='a' && ch<='z'){
+      if(COUNT[ch.toLowerCase()] === undefined) break;   // not a path command at all
+      cmd = ch; i++;
+    } else if(!cmd) break;                               // numbers before any command
+    else if(cmd === 'M') cmd = 'L';                      // a repeated moveto is a lineto
+    else if(cmd === 'm') cmd = 'l';
+    else if(cmd === 'Z' || cmd === 'z') break;           // nothing repeats after a close
+    const k = cmd.toLowerCase(), want = COUNT[k];
+    const args = [];
+    let bad = false;
+    for(let j=0;j<want;j++){
+      const v = (k === 'a' && (j===3 || j===4)) ? flag() : num();
+      if(!isFinite(v)){ bad = true; break; }
+      args.push(v);
+    }
+    if(bad) break;                                       // malformed from here on: keep what we have
+    out.push([cmd, args]);
+  }
+  return out;
+}
+
+// Walk the commands, turning every curve into straight runs no further than
+// tol from the true curve, and transform each point by m on the way out.
+// Closed subpaths come back with their first point repeated at the end and a
+// .closed flag, so a caller can tell a ring from an open line without guessing.
+function flattenPathData(d, m, tol){
+  const cmds = pathCmds(d);
+  if(!cmds.length) return [];
+  const ma=m.a, mb=m.b, mc=m.c, md=m.d, me=m.e, mf=m.f;
+  const subs = [];
+  let cur = null;
+  let x=0, y=0, sx=0, sy=0;          // current point, and the current subpath's start
+  let cx2=null, cy2=null;            // last cubic control point, for S
+  let qx2=null, qy2=null;            // last quadratic control point, for T
+
+  function push(ux,uy){
+    const X = ma*ux + mc*uy + me, Y = mb*ux + md*uy + mf;
+    const L = cur.length;
+    if(L && Math.abs(cur[L-1].x - X) < 1e-9 && Math.abs(cur[L-1].y - Y) < 1e-9) return;
+    cur.push({ x:X, y:Y });
+  }
+  function open(ux,uy){
+    cur = []; cur.closed = false; subs.push(cur);
+    push(ux,uy);
+  }
+  const runs = v => Math.min(PATH_SEG_MAX, Math.max(1, Math.ceil(v) || 1));
+
+  // Deviation of an n-run polyline from a Bezier is bounded by the largest
+  // second difference of the control points over 8n^2, scaled by the curve's
+  // degree — so the run count falls straight out of the tolerance.
+  function cubic(x1,y1,x2,y2,x3,y3){
+    const x0=x, y0=y;
+    const e1 = Math.hypot(x0-2*x1+x2, y0-2*y1+y2), e2 = Math.hypot(x1-2*x2+x3, y1-2*y2+y3);
+    const nn = runs(Math.sqrt(0.75*Math.max(e1,e2)/tol));
+    for(let k=1;k<=nn;k++){
+      const t=k/nn, u=1-t, uu=u*u, tt=t*t;
+      push(uu*u*x0 + 3*uu*t*x1 + 3*u*tt*x2 + tt*t*x3,
+           uu*u*y0 + 3*uu*t*y1 + 3*u*tt*y2 + tt*t*y3);
+    }
+    cx2=x2; cy2=y2; qx2=null; qy2=null; x=x3; y=y3;
+  }
+  function quad(x1,y1,x2,y2){
+    const x0=x, y0=y;
+    const nn = runs(Math.sqrt(Math.hypot(x0-2*x1+x2, y0-2*y1+y2)/(4*tol)));
+    for(let k=1;k<=nn;k++){
+      const t=k/nn, u=1-t;
+      push(u*u*x0 + 2*u*t*x1 + t*t*x2, u*u*y0 + 2*u*t*y1 + t*t*y2);
+    }
+    qx2=x1; qy2=y1; cx2=null; cy2=null; x=x2; y=y2;
+  }
+  // Endpoint to centre parameterisation, straight out of the SVG spec's
+  // implementation notes, then sampled by angle.
+  function arc(rx,ry,rot,laf,sf,x1,y1){
+    const x0=x, y0=y;
+    rx = Math.abs(rx); ry = Math.abs(ry);
+    if(!rx || !ry || (Math.abs(x1-x0) < 1e-12 && Math.abs(y1-y0) < 1e-12)){
+      if(Math.abs(x1-x0) > 1e-12 || Math.abs(y1-y0) > 1e-12) push(x1,y1);
+      x=x1; y=y1; cx2=null; cy2=null; qx2=null; qy2=null;
+      return;
+    }
+    const ph = rot*Math.PI/180, cos = Math.cos(ph), sin = Math.sin(ph);
+    const dx2 = (x0-x1)/2, dy2 = (y0-y1)/2;
+    const ux = cos*dx2 + sin*dy2, uy = -sin*dx2 + cos*dy2;
+    const lam = ux*ux/(rx*rx) + uy*uy/(ry*ry);
+    if(lam > 1){ const s = Math.sqrt(lam); rx *= s; ry *= s; }
+    const den = rx*rx*uy*uy + ry*ry*ux*ux;
+    let num = rx*rx*ry*ry - den;
+    if(num < 0) num = 0;
+    const co = (laf === sf ? -1 : 1) * Math.sqrt(num/den || 0);
+    const cxp = co*rx*uy/ry, cyp = -co*ry*ux/rx;
+    const ccx = cos*cxp - sin*cyp + (x0+x1)/2;
+    const ccy = sin*cxp + cos*cyp + (y0+y1)/2;
+    const ang = (vx,vy) => Math.atan2(vy,vx);
+    const a0 = ang((ux-cxp)/rx, (uy-cyp)/ry);
+    let a1 = ang((-ux-cxp)/rx, (-uy-cyp)/ry);
+    let sweep = a1 - a0;
+    if(!sf && sweep > 0) sweep -= 2*Math.PI;
+    if(sf && sweep < 0) sweep += 2*Math.PI;
+    // A chord across dtheta sits r*(1-cos(dtheta/2)) inside the arc, about
+    // r*dtheta^2/8 for small angles — invert that for the step.
+    const r = Math.max(rx,ry);
+    const step = Math.max(1e-3, Math.min(Math.PI/2, Math.sqrt(8*tol/r) || Math.PI/2));
+    const nn = runs(Math.abs(sweep)/step);
+    for(let k=1;k<=nn;k++){
+      const a = a0 + sweep*k/nn, ca = Math.cos(a), sa = Math.sin(a);
+      push(ccx + cos*rx*ca - sin*ry*sa, ccy + sin*rx*ca + cos*ry*sa);
+    }
+    x=x1; y=y1; cx2=null; cy2=null; qx2=null; qy2=null;
+  }
+
+  for(const [cmd,a] of cmds){
+    const rel = cmd >= 'a';
+    const k = cmd.toLowerCase();
+    if(k === 'z'){
+      if(cur && cur.length){ push(sx,sy); cur.closed = true; }
+      x=sx; y=sy; cx2=null; cy2=null; qx2=null; qy2=null;
+      cur = null;                        // anything after Z starts a new subpath
+      continue;
+    }
+    if(k === 'm'){
+      x = rel ? x+a[0] : a[0];
+      y = rel ? y+a[1] : a[1];
+      sx=x; sy=y; cx2=null; cy2=null; qx2=null; qy2=null;
+      open(x,y);
+      continue;
+    }
+    if(!cur) open(x,y);                  // geometry before any moveto: start at the origin
+    if(k === 'l'){ x = rel ? x+a[0] : a[0]; y = rel ? y+a[1] : a[1]; push(x,y); cx2=null; qx2=null; }
+    else if(k === 'h'){ x = rel ? x+a[0] : a[0]; push(x,y); cx2=null; qx2=null; }
+    else if(k === 'v'){ y = rel ? y+a[0] : a[0]; push(x,y); cx2=null; qx2=null; }
+    else if(k === 'c') cubic(rel?x+a[0]:a[0], rel?y+a[1]:a[1], rel?x+a[2]:a[2],
+                             rel?y+a[3]:a[3], rel?x+a[4]:a[4], rel?y+a[5]:a[5]);
+    else if(k === 's'){
+      const rx1 = cx2===null ? x : 2*x-cx2, ry1 = cy2===null ? y : 2*y-cy2;
+      cubic(rx1, ry1, rel?x+a[0]:a[0], rel?y+a[1]:a[1], rel?x+a[2]:a[2], rel?y+a[3]:a[3]);
+    }
+    else if(k === 'q') quad(rel?x+a[0]:a[0], rel?y+a[1]:a[1], rel?x+a[2]:a[2], rel?y+a[3]:a[3]);
+    else if(k === 't'){
+      const rx1 = qx2===null ? x : 2*x-qx2, ry1 = qy2===null ? y : 2*y-qy2;
+      quad(rx1, ry1, rel?x+a[0]:a[0], rel?y+a[1]:a[1]);
+    }
+    else if(k === 'a') arc(a[0], a[1], a[2], a[3], a[4], rel?x+a[5]:a[5], rel?y+a[6]:a[6]);
+  }
+  return subs.filter(p => p.length > 1);
+}
+
+// The old arc-length sampler, kept for the handful of things that have no path
+// data of their own — a <use>, or live text. Both come back empty today, but a
+// slow answer beats a wrong one if that ever changes.
+function flattenByLength(node, m){
   let L = 0;
   try { L = node.getTotalLength(); } catch(e){ return []; }
   if(!(L > 0)) return [];
   const step = Math.min(FLAT_MM, L/4);
-  const steps = Math.min(400000, Math.max(2, Math.ceil(L/step)));
+  const steps = Math.min(40000, Math.max(2, Math.ceil(L/step)));
   const subs = [];
   let cur = null, prev = null;
   for(let i=0;i<=steps;i++){
@@ -1933,12 +3934,26 @@ function flattenEl(node, m){
     try { p = node.getPointAtLength(L*i/steps); } catch(e){ break; }
     const q = p.matrixTransform(m);
     if(prev && Math.hypot(q.x-prev.x, q.y-prev.y) > step*4) cur = null;
-    if(cur) cur.push(q); else subs.push(cur = [q]);
+    if(cur) cur.push({ x:q.x, y:q.y }); else subs.push(cur = [{ x:q.x, y:q.y }]);
     prev = q;
   }
   return subs;
 }
 
+function flattenEl(node, m){
+  const d = pathDataOf(node);
+  if(d === null) return flattenByLength(node, m);
+  if(!d) return [];
+  // Half of SIMPLIFY_MM, because simplify() is allowed its own SIMPLIFY_MM on
+  // top and the two errors add: a curve ends up no more than 0.03 mm from true,
+  // which is where the old sample-then-thin pipeline landed as well. The
+  // tolerance is a millimetre on the material and the path is in its own units,
+  // so it has to come back through the matrix about to be applied — without
+  // that a traced image, whose units are image pixels, is flattened far finer
+  // than the kerf and a 1000-unit viewBox far coarser.
+  const k = Math.sqrt(Math.abs(m.a*m.d - m.b*m.c)) || Math.hypot(m.a, m.b) || 1;
+  return flattenPathData(d, m, Math.max(1e-7, SIMPLIFY_MM/2/k));
+}
 // Straight runs come back from arc-length sampling as hundreds of collinear
 // points. Dropping them keeps a traced design's PDF to a sane size.
 //
@@ -2087,7 +4102,7 @@ const saveFile = (bytes, type, name) => {
   return name;
 };
 
-const jobName = () => S.loaded ? S.name : 'size-check';
+const jobName = () => S.loaded ? S.name : 'drawing';
 
 // Flattening a busy traced design takes a couple of seconds, and it all happens
 // on the main thread, so the window simply stops responding. Without a label
@@ -2103,7 +4118,7 @@ function withBusy(btn, label, work){
     try { work(); }
     finally {
       btn.innerHTML = html;
-      btn.disabled = !liveJob();
+      btn.disabled = !hasJob();
       document.body.style.cursor = '';
     }
   }));
@@ -2380,6 +4395,82 @@ function exportEMF(){
         + ' on purpose, to correct your measured\nsize check. Do not "fix" it.' : ''));
 }
 
+/* ================= the print bridge =================
+   Everything else in this file has to go through another program to reach the
+   laser. This is the one that does not.
+
+   The Universal driver decides cut-versus-engrave by the PEN each line was
+   drawn with: cosmetic (no width) cuts, geometric (a real width) engraves.
+   Chrome rasterises the page on its way to the driver, so no pen ever arrives
+   and a browser print always engraves. Direct File Import turned out to be a
+   dead end on this machine too - EMF and PDF both import and do nothing.
+
+   So the tool writes the geometry out as plain text, and the small PowerShell
+   script that sits beside this file does the single thing the browser cannot:
+   talk to gdi32 directly and draw those lines into a real print job.
+
+   The format is deliberately dull - one SHAPE line, then one P line per loop,
+   points as x,y in millimetres from the top-left of the page. If it ever has
+   to be debugged at the laser PC it can be read in Notepad. */
+const lpjNum = v => (Math.round(v*1000)/1000).toString();
+// The file is read by a .NET parser, so keep it to plain ASCII: a student's
+// design can be called anything at all.
+const lpjText = s => String(s).replace(/[^\x20-\x7e]/g,'').replace(/\s+/g,' ').trim();
+
+function lpjShapes(recs, mode, hex, out){
+  for(const r of recs){
+    const body = [];
+    for(const raw of r.subs){
+      const p = simplify(raw);
+      if(p.length < 2) continue;
+      // A GDI polyline draws the points it is given and nothing more, so a
+      // closed loop has to say so by repeating its first point at the end.
+      const last = p[p.length-1];
+      if(Math.hypot(p[0].x-last.x, p[0].y-last.y) < FLAT_MM*1.6) p[p.length-1] = p[0];
+      body.push('P '+p.map(q=>lpjNum(q.x)+','+lpjNum(q.y)).join(' '));
+    }
+    if(!body.length) continue;
+    // One SHAPE, all its loops: that grouping is what lets a filled letter keep
+    // the hole in the middle of it instead of engraving solid.
+    out.push('SHAPE '+mode+' '+hex.slice(1)+' '+(r.evenOdd?'evenodd':'nonzero'));
+    for(const b of body) out.push(b);
+  }
+}
+
+function exportLPJ(){
+  const g = collectGeometry();
+  const { lay, skipped, w, h, cal } = g;
+  if(!exportReady(g,'Save')) return;
+
+  const nm = jobName();
+  const L = ['LPJ 1', 'NAME '+lpjText(nm), 'CODE '+lpjText(S.jobCode),
+             'PAGE '+lpjNum(w)+' '+lpjNum(h), 'CAL '+lpjNum(cal)];
+  if(S.material) L.push('MATERIAL '+lpjText(S.material));
+  // Engrave first, then score, then cut - the same order as every other export.
+  // Cut the piece free before it is engraved and it shifts under the laser.
+  lpjShapes(lay.engF,  'fill',   OPS.engrave.pen, L);
+  lpjShapes(lay.engS,  'stroke', OPS.engrave.pen, L);
+  lpjShapes(lay.score, 'stroke', OPS.score.pen,   L);
+  lpjShapes(lay.cut,   'stroke', OPS.cut.pen,     L);
+  L.push('END','');
+
+  const fn = saveFile(L.join('\n'), 'text/plain', safeName(nm)+'-CUT-'+w+'x'+h+'mm.lpj');
+
+  alert('Saved: '+fn+'\n\n'
+    + 'Now at the laser PC, in a PowerShell window:\n\n'
+    + '    .\\print-to-laser.ps1\n\n'
+    + 'It picks up the newest job from your Downloads folder, shows you what is\n'
+    + 'in it, and asks before it sends anything. Keep print-to-laser.ps1 in that\n'
+    + 'same folder, or run it from the folder it is in.\n\n'
+    + 'That script draws the lines straight into a print job with the zero-width\n'
+    + 'pen the Universal driver reads as "cut". This is the route that does not\n'
+    + 'need Illustrator. Page '+w+' x '+h+' mm.'
+    + (skipped ? '\n\nNote: '+skipped+' photo or text item'+(skipped===1?' was':'s were')
+        + ' left out, as neither can be a cut line.' : '')
+    + (cal!==1 ? '\n\nThis job is '+((cal-1)*100).toFixed(2)+'% '+(cal>1?'bigger':'smaller')
+        + ' on purpose, to correct your measured\nsize check. Do not "fix" it in the laser software.' : ''));
+}
+
 // Universal's software is a Windows print driver, so the laser is a printer and
 // the browser can in principle drive it directly. In practice Chrome rasterises
 // the page on the way out, the driver sees a bitmap instead of strokes, and the
@@ -2400,8 +4491,9 @@ function sendToLaser(){
    +'themselves. The driver measures stroke width to decide cut-versus-\n'
    +'engrave, finds no strokes in a picture, and rasters the lot — the job\n'
    +'goes over and over the same line and never cuts through.\n\n'
-   +'Use "Save cut-ready PDF" instead, then import that PDF in the Universal\n'
-   +'software or print it from Acrobat Reader.\n\n'
+   +'Use "Send to the laser" instead. That saves the job as a file and\n'
+   +'print-to-laser.ps1 draws it into a print job the proper way, with the\n'
+   +'zero-width pen the driver reads as "cut".\n\n'
    +'Carry on only if you want to test whether this machine is an exception.\n\n'
    +'---\n\n'
    +'Three settings decide whether this comes out\n'
@@ -2441,7 +4533,7 @@ function sendToLaser(){
 }
 
 function printSheet(){
-  const { used, art, pos, pageW, pageH, cal, fitsCal } = buildOutput(false);
+  const { used, art, pos, pageW, pageH } = buildOutput(false);
   const bad = S.warnings.filter(w=>w.level==='bad');
   const rows = ['cut','score','engrave'].filter(op=>used[op]>0).map(op=>
     `<tr><td><strong>${OPS[op].label}</strong></td><td>${OPS[op].pname} ${OPS[op].pen}</td>
@@ -2481,14 +4573,15 @@ function printSheet(){
       again as a red hairline on the same outline so the part is cut free. It is not a doubled-up
       line. The black pass must run before the red one, as below.</div>`:''}
     <div class="box">
-      <strong>Getting this job to the machine.</strong> Use the <strong>cut-ready EMF</strong>: open the
-      Universal software and import it (Import / Direct File Import). Every cut and score line in it is
-      drawn with a cosmetic zero-width pen, which is what the driver reads as "cut". If your version
-      will not take an EMF, use the <strong>cut-ready PDF</strong> instead — either import that, or open
-      it in Adobe Acrobat Reader and print with Size set to <strong>Actual size</strong>.
+      <strong>Getting this job to the machine.</strong> Click <strong>Send to the laser</strong>, which saves
+      a <strong>.lpj</strong> file, then at the laser PC open a PowerShell window in the folder it landed in
+      and run <strong>print-to-laser.ps1</strong> (the button under it saves that script too, so there is
+      still only this one file to carry). It picks up the newest job, shows you what is in it, and asks
+      before it sends. Every cut and score line goes to the driver drawn with a cosmetic zero-width pen,
+      which is what it reads as "cut". Failing that, <strong>Download SVG</strong> and print it from Illustrator.
       Do <strong>not</strong> print from a web browser: the browser sends a picture of the page rather
       than the lines, the driver has no stroke widths left to measure, and the whole job comes out
-      engraved — going over and over the same line without ever cutting through.
+      engraved &mdash; going over and over the same line without ever cutting through.
     </div>
     <div class="box">
       <strong>In the Universal driver:</strong> set the page size to
@@ -2497,15 +4590,6 @@ function printSheet(){
       Set power and speed per pen colour above. Run engraving first, then scoring, then cutting
       last, so the piece does not come loose and shift mid-job.
     </div>
-    ${(S.cal.on&&fitsCal)||cal!==1?`<div class="box"><strong>Size check.</strong>
-      ${S.cal.on&&fitsCal?`A 100 mm square sits at ${round(calBox().x)}, ${round(calBox().y)} mm from the
-      top-left of the sheet${cal!==1?` (sent as ${round(CAL_MM*cal)} mm)`:''}.
-      Measure it after the cut: it should come back <strong>100.0 mm</strong>. `:''}
-      ${cal!==1?`This file has been scaled <strong>${((cal-1)*100).toFixed(2)}%</strong> to correct for a
-      measured ${round(S.cal.meas)} mm on a 100 mm square. Every dimension on this sheet is the
-      <em>finished</em> size, which is what you should measure on the material.`
-      :`No scale correction is being applied — every dimension on this sheet should come out exact.`}
-      </div>`:''}
     ${S.warnings.length?`<div><strong>Checked by computer — ${S.warnings.length} note${S.warnings.length===1?'':'s'}:</strong>
       <ul>${S.warnings.map(w=>`<li><strong>${w.t}.</strong> ${w.d}</li>`).join('')}</ul></div>`:''}
     <div class="box">
@@ -2569,6 +4653,9 @@ document.addEventListener('keydown', e=>{
   if(e.key==='-'||e.key==='_') { zoomAbout(1/1.3); return; }
   if(e.key==='0') { resetView(); return; }
   if(!S.loaded || !/^Arrow/.test(e.key)) return;
+  // With a selection, the arrows belong to it — the selection handler below
+  // takes them. Without this both fire and everything moves twice as far.
+  if(S.sel.size) return;
   const art = artBoxMm(); if(!art) return;
   const step = e.shiftKey ? 5 : 1;
   const d = { ArrowLeft:[-step,0], ArrowRight:[step,0], ArrowUp:[0,-step], ArrowDown:[0,step] }[e.key];
@@ -2704,57 +4791,231 @@ document.querySelectorAll('.setall button').forEach(b=>{
   };
 });
 
-// The exports, the stage and the Size check panel come alive for EITHER a loaded
-// design or the check square on its own. Calibrating is the first thing you do on
-// a machine you do not trust, and it should never have needed a student's artwork
-// loaded underneath it just to put a square on the sheet.
+// The bed is always there to draw on; it is the exports that have to wait until
+// there is something worth sending.
 function syncLive(){
-  const live = liveJob();
-  ['emf','pdf','toLaser','dl','print'].forEach(id=>{ $(id).disabled = !live; });
-  $('empty').hidden = live;
-  $('key').hidden = !live;
-  $('secCal').hidden = !live;
+  const live = hasJob();
+  ['lpj','emf','pdf','toLaser','dl','print'].forEach(id=>{ $(id).disabled = !live; });
   $('secChecks').hidden = !live;
-  $('tCal').setAttribute('aria-pressed', S.cal.on ? 'true' : 'false');
-  $('calOn').checked = S.cal.on;
 }
-
-function setCal(on){
-  S.cal.on = !!on;
-  // A square-only job still gets a code, so the sheet and the PDF can be traced
-  // back to it like any other.
-  if(S.cal.on && !S.jobCode) S.jobCode = rnd4()+'-'+rnd4();
-  // Switching it on with nothing loaded makes the square the entire job, so the
-  // view has to reframe around the bed rather than artwork that is not there.
-  if(!S.loaded) S.view = null;
-  syncLive();
-  if(liveJob()) refresh();
-  else {
-    $('stagewrap').querySelectorAll('svg').forEach(n=>n.remove());
-    setHud(null, null);
+/* ---------- tools, selection panel, keyboard ---------- */
+function syncTools(){
+  // Changing tool abandons whatever was half-drawn, which is what every other
+  // program does and what Escape-then-click would otherwise be needed for.
+  if(pend && pend.kind!==S.tool){ pendCancel(); dimOff(); renderCanvas(); }
+  $('toolRail').querySelectorAll('[data-tool]').forEach(b =>
+    b.setAttribute('aria-pressed', b.dataset.tool===S.tool ? 'true' : 'false'));
+  $('railDel').disabled = !S.sel.size;
+  const stage = $('stagewrap');
+  stage.style.cursor = S.tool==='pan' ? 'grab'
+                     : (DRAW_TOOLS.has(S.tool) || S.tool==='tape') ? 'crosshair' : '';
+  if(!DRAW_TOOLS.has(S.tool) && S.tool!=='tape') paintSnap(null);
+  if(S.tool!=='select'){
+    const wasG = S.hover && S.hover.guide;
+    S.hover = null;
+    const h = $('hoverg'); if(h) h.remove();
+    // A hovered guide is lit in the guide layer, not in #hoverg, so dropping
+    // the hover has to put that layer back the way it was.
+    if(wasG) renderCanvas();
   }
 }
-$('tCal').onclick    = ()=> setCal(!S.cal.on);
-$('calOn').onchange  = ()=> setCal($('calOn').checked);
-$('calMeas').oninput = ()=>{ S.cal.meas = +$('calMeas').value || 100; refresh(); };
-// Park it back in the corner if it has been dragged somewhere silly.
-$('calHome').onclick = ()=>{ S.cal.x = 10; S.cal.y = null; refresh(); };
+$('toolRail').querySelectorAll('[data-tool]').forEach(b => {
+  b.onclick = ()=>{ S.tool = b.dataset.tool; syncTools(); };
+});
+$('railDel').onclick = selDelete;
+$('railText').onclick = ()=>{ $('secDraw').scrollIntoView({block:'nearest'}); $('txtVal').focus(); };
+$('txtAdd').onclick = addText;
+$('txtVal').addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); addText(); } });
+$('polyN').oninput = ()=>{ S.polyN = Math.max(3, Math.min(24, +$('polyN').value||6)); if(pend) pendPaint(); };
+$('selFlipX').onclick = ()=> selFlip('x');
+$('selFlipY').onclick = ()=> selFlip('y');
+$('selRot').onclick   = ()=> selRotate(90);
+$('selScaleGo').onclick = ()=> selScale((+$('selScaleV').value||100)/100);
+$('selRound').onclick = ()=> selCorners(+$('selCornerV').value||0, true);
+$('selChamf').onclick = ()=> selCorners(+$('selCornerV').value||0, false);
+$('selOut').onclick   = ()=> selOffset(+$('selOffV').value||0);
+$('selIn').onclick    = ()=> selOffset(-(+$('selOffV').value||0));
+$('selGrp').onclick   = selGroup;
+$('selUngrp').onclick = selUngroup;
+// Every tool has a letter, because at the machine one hand is usually holding
+// the work: V select, H pan, R rectangle, C circle, L line, T tape.
+const TOOL_KEYS = { v:'select', h:'pan', r:'rect', c:'circle', l:'line',
+                    p:'polygon', a:'arc', t:'tape' };
 
-function syncCalNote(){
-  const m = +S.cal.meas, f = calFactor();
-  const n = $('calNote');
-  if(f === 1){
-    n.textContent = (m >= 50 && m <= 200)
-      ? 'No correction — exported at true size.'
-      : 'That is too far out to be a measurement, so no correction is being applied. Type the square’s real width, between 50 and 200.';
-    n.style.color = '';
+function syncSelPanel(){
+  const n = S.sel.size;
+  $('secSel').hidden = !n;
+  $('railDel').disabled = !n;
+  if(!n) return;
+  $('selCount').textContent = n;
+  // A guide has no operation to set, no size to type and no corners to round,
+  // so a selection that is nothing but scaffolding narrows to "this one, and
+  // Delete takes it".
+  const guideN = selList().filter(o => o.guide).length;
+  const allG = guideN === n;
+  $('selOpsLbl').hidden = allG;
+  $('selOps').hidden = allG;
+  // These all rewrite geometry, which only exists for shapes drawn here — a
+  // loaded design is the student's file and stays as it arrived.
+  $('selTools').hidden = !selList().some(o => o.drawn);
+  const drawnN = selList().filter(o=>o.drawn).length;
+  // One shape on its own gets described rather than counted: what it is and how
+  // big it is, which is the question being asked when it is selected at all.
+  if(n===1 && drawnN===1){
+    const d = selList()[0], b = boxOf(d);
+    const round1 = round;
+    $('selWhat').textContent =
+      d.kind==='line'   ? `Line, ${round1(Math.hypot(d.w,d.h))} mm at ${Math.round(angOf({x:0,y:0},{x:d.w,y:d.h}))}°.`
+    : d.kind==='circle' ? (Math.abs(b.w-b.h) < .05
+        ? `Circle, ⌀ ${round1(b.w)} mm.` : `Oval, ${round1(b.w)} × ${round1(b.h)} mm.`)
+    : d.kind==='poly'   ? `Traced outline, ${round1(b.w)} × ${round1(b.h)} mm.`
+    :                     `Rectangle, ${round1(b.w)} × ${round1(b.h)} mm.`;
+  } else if(allG) $('selWhat').textContent = n===1
+    ? 'A guide. Scaffolding, never cut — Delete removes it.'
+    : `${n} guides. Scaffolding, never cut — Delete removes them.`;
+  else $('selWhat').textContent = drawnN===n ? 'Shapes drawn here.'
+    : guideN ? `${guideN} guide${guideN>1?'s':''}, and ${n-guideN} to cut.`
+    : drawnN ? `${n-drawnN} from the design, ${drawnN} drawn here.`
+    : (n===1 ? 'One shape from the design.' : `${n} shapes from the design.`);
+  // What they are set to now — blank if the selection disagrees with itself.
+  const ops = new Set(selList().filter(o => !o.guide).map(o=>opFor(o)));
+  const cur = ops.size===1 ? [...ops][0] : null;
+  const host = $('selOps');
+  host.innerHTML = '';
+  for(const k of (allG ? [] : ['cut','score','engrave','ignore'])){
+    const b = document.createElement('button');
+    b.className = 'card';
+    b.setAttribute('aria-pressed', k===cur ? 'true' : 'false');
+    b.innerHTML = OP_ICON[k] + '<span>' + OPS[k].label + '</span>';
+    b.onclick = ()=> selSetOp(k);
+    host.appendChild(b);
+  }
+  syncSelDims();
+}
+
+// The selected shape's real numbers, editable. A field the student is typing in
+// is left alone, or the next refresh would eat the keystroke.
+function syncSelDims(){
+  const one = S.sel.size===1 ? selList()[0] : null;
+  const d = one && one.drawn ? one : null;
+  $('selDims').hidden = !d;
+  if(!d) return;
+  const b = boxOf(d), line = d.kind==='line';
+  const set = (id,v) => { const n = $(id); if(document.activeElement!==n) n.value = round(v); };
+  set('selX', line ? d.x : b.x);
+  set('selY', line ? d.y : b.y);
+  set('selW', line ? Math.hypot(d.w,d.h) : b.w);
+  set('selH', line ? angOf({x:0,y:0},{x:d.w,y:d.h}) : b.h);
+  $('selWU').textContent = line ? 'length mm' : 'w mm';
+  $('selHU').textContent = line ? 'angle °'   : 'h mm';
+}
+function selDimsApply(){
+  const one = S.sel.size===1 ? selList()[0] : null;
+  if(!one || !one.drawn) return;
+  const d = one, b = boxOf(d), line = d.kind==='line';
+  const num = id => { const v = $(id).value.trim(); return v==='' ? NaN : +v; };
+  const nx = num('selX'), ny = num('selY'), nw = num('selW'), nh = num('selH');
+  // A field cleared mid-thought is not an instruction to shrink the shape to
+  // nothing. Put the real numbers back and wait. (A line's second field is an
+  // angle, which is allowed to be zero or negative; a size is not.)
+  if(![nx,ny,nw,nh].every(isFinite) || nw <= 0 || (!line && nh <= 0)){ syncSelDims(); return; }
+  pushUndo();
+  if(line){
+    const A = -nh*Math.PI/180;
+    d.x = nx; d.y = ny;
+    d.w = Math.cos(A)*nw; d.h = Math.sin(A)*nw;
+  } else if(d.kind==='poly'){
+    // A baked outline scales about its own top-left, then shifts to the typed spot.
+    scalePoly(d, nw, nh); d.x = (d.x||0)+(nx-b.x); d.y = (d.y||0)+(ny-b.y);
   } else {
-    const pct = (f-1)*100;
-    n.innerHTML = `Exporting <b style="color:var(--acc)">${pct>0?'+':''}${pct.toFixed(2)}%</b> `
-      + `${pct>0?'bigger':'smaller'} to compensate. A 100 mm square leaves here as `
-      + `${round(100*f)} mm and should come back 100 mm.`;
+    d.x = nx; d.y = ny; d.w = nw; d.h = nh;
   }
+  refresh();
 }
+['selX','selY','selW','selH'].forEach(id => { $(id).onchange = selDimsApply; });
+$('selDup').onclick  = selDuplicate;
+$('selDel').onclick  = selDelete;
+$('selNone').onclick = clearSel;
+
+document.addEventListener('keydown', e => {
+  if(!$('cropOverlay').hidden){
+    // The sidebar is still live behind the crop view, so a field there keeps
+    // its own Enter and Escape.
+    if(!/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)){
+      if(e.key==='Escape'){ e.preventDefault(); $('cropCancel').click(); }
+      if(e.key==='Enter'){ e.preventDefault(); cropApply(); }
+    }
+    return;
+  }
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+  if(e.code==='Space' && !typing){ spaceDown = true; }
+  if(typing) return;
+  const mod = e.ctrlKey || e.metaKey;
+  // Numbers need no aiming. Mid-shape they hand the value box the keyboard, and
+  // with a shape selected they drop into the same box to correct it.
+  if(!mod && /^[0-9.]$/.test(e.key) && (pend || dimArmed)){
+    e.preventDefault();
+    if(pend) dimAsk(e.key);
+    else {
+      const i = dimIn();
+      i.value = e.key; i.focus();
+      try{ i.setSelectionRange(2,2); }catch(err){}
+    }
+    return;
+  }
+  // One letter per tool. Not while a shape is half-drawn — C is a circle, but
+  // halfway through a rectangle it would throw the rectangle away.
+  if(!mod && !pend && TOOL_KEYS[e.key.toLowerCase()]){
+    e.preventDefault();
+    S.tool = TOOL_KEYS[e.key.toLowerCase()]; syncTools();
+    return;
+  }
+  if(mod && e.key.toLowerCase()==='z'){ e.preventDefault(); undo(); return; }
+  if(mod && e.key.toLowerCase()==='d'){ e.preventDefault(); selDuplicate(); return; }
+  if(mod && e.key.toLowerCase()==='g'){
+    e.preventDefault();
+    if(e.shiftKey) selUngroup(); else selGroup();
+    return;
+  }
+  // Select-all means the job. Sweeping the guides in too would mean the next
+  // Delete silently took the scaffolding with it.
+  if(mod && e.key.toLowerCase()==='a'){
+    e.preventDefault(); setSel(pickables().filter(o => !o.guide)); return;
+  }
+  if(e.key==='Escape'){
+    // First Escape abandons the shape being drawn, a second puts the tool back.
+    if(pend){ pendCancel(); dimOff(); renderCanvas(); return; }
+    if(DRAW_TOOLS.has(S.tool) || S.tool==='tape'){ S.tool='select'; syncTools(); }
+    clearSel(); return;
+  }
+  if(e.key==='Delete' || e.key==='Backspace'){
+    // Mid-shape, Delete means "not that one" — the same as Escape. It must not
+    // reach past the shape being drawn and delete whatever was selected before.
+    if(pend){ e.preventDefault(); pendCancel(); dimOff(); renderCanvas(); return; }
+    if(S.sel.size){ e.preventDefault(); selDelete(); return; }
+  }
+  const arrows = { ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1] };
+  if(arrows[e.key] && S.sel.size){
+    e.preventDefault();
+    const k = e.shiftKey ? 5 : 1;
+    // One undo entry per burst of nudges, not one per keypress, so holding an
+    // arrow key down does not bury everything else in the undo stack.
+    if(!nudging){ pushUndo(); nudging = true; }
+    clearTimeout(nudgeTimer);
+    nudgeTimer = setTimeout(()=>{ nudging = false; }, 600);
+    selNudge(arrows[e.key][0]*k, arrows[e.key][1]*k);
+    refresh();
+  }
+});
+let nudging = false, nudgeTimer = null;
+document.addEventListener('keyup', e => { if(e.code==='Space') spaceDown = false; });
+
+$('tSnap').onclick = ()=>{
+  S.snap = !S.snap;
+  $('tSnap').setAttribute('aria-pressed', S.snap ? 'true' : 'false');
+  if(!S.snap) paintSnap(null);
+};
+$('guideClear').onclick = clearGuides;
 
 $('olOn').onchange = ()=>{ S.outline.on = $('olOn').checked; refresh(); };
 ['olPad','olR'].forEach(id=>$(id).oninput = ()=>{
@@ -2771,7 +5032,555 @@ $('dl').onclick = download;
 $('print').onclick = printSheet;
 $('pdf').onclick = () => withBusy($('pdf'), 'Working…', exportPDF);
 $('emf').onclick = () => withBusy($('emf'), 'Working…', exportEMF);
+$('lpj').onclick = () => withBusy($('lpj'), 'Working…', exportLPJ);
 $('reset').onclick = ()=>location.reload();
+
+// The bed is on screen before anything is loaded, because "open it and draw a
+// box" is how half the jobs here start and waiting for a picture to see the
+// machine made no sense.
+S.jobCode = rnd4()+'-'+rnd4();
+syncLive();
+refresh();
+
+// Everything on the stage is sized in screen pixels per millimetre — hairlines,
+// handles, the snap radius, the grab targets. A resized window leaves all of
+// them measured against a stage that no longer exists.
+let reflowTimer = null;
+window.addEventListener('resize', ()=>{
+  clearTimeout(reflowTimer);
+  reflowTimer = setTimeout(()=>{
+    if(!drag && !pend) renderCanvas();
+    if(!$('cropOverlay').hidden) drawCrop();
+  }, 180);
+});
+
+// The script that does the printing travels inside this file, so the tool is
+// still the one thing to carry to the laser PC. sync-bridge.py keeps the copy
+// below identical to print-to-laser.ps1 in the project.
+// A locked-down PC often refuses to run a .ps1 at all, and -ExecutionPolicy
+// Bypass cannot override a policy that came down from the domain. But an
+// execution policy governs script FILES; the same code handed to PowerShell as
+// text is not a file and runs where the file would not. So: one .cmd that reads
+// its own tail and runs it. Double-clicked, nothing to type, nothing to change.
+// Built here from the script already embedded in this page, so there is no
+// second copy of it to drift out of step.
+function launcherText(){
+  const ps1 = $('ps1src').textContent.replace(/^\n/, '').replace(/\r?\n/g, '\r\n');
+  const run = [
+    "if($ExecutionContext.SessionState.LanguageMode -ne 'FullLanguage'){",
+    "  Write-Host ''; Write-Host ('PowerShell on this PC is locked to ' + $ExecutionContext.SessionState.LanguageMode + '.') -ForegroundColor Yellow;",
+    "  Write-Host 'The print bridge needs ordinary PowerShell. Send the SVG or PDF to the laser instead, or ask IT.'; exit 2 };",
+    "$t = Get-Content -LiteralPath '%SELF%';",
+    "$m = ($t | Select-String -Pattern '^#PS_START$' | Select-Object -Last 1);",
+    "if(-not $m){ Write-Host 'This launcher is damaged: the script half is missing.'; exit 3 };",
+    "& ([scriptblock]::Create(($t[$m.LineNumber..($t.Count-1)] -join [Environment]::NewLine)))"
+  ].join(' ');
+  // Anything typed after the file name is handed on to the script, so the
+  // switches it tells you about still work from a shortcut or a command line:
+  // a word starting with a dash stays a switch, anything else is quoted as the
+  // value it is. Double-clicked, there is nothing to pass and nothing to type.
+  return [
+    '@echo off',
+    'rem  Laser Prep print bridge, in one double-clickable file.',
+    'rem  The PowerShell half starts below the marker line and is run as text,',
+    'rem  which is why no execution policy has to be changed to use it.',
+    'setlocal',
+    'cd /d "%~dp0"',
+    'rem  shift moves %0 along with the rest, so the path to this very file has',
+    'rem  to be taken before any of that happens.',
+    'set "SELF=%~f0"',
+    'set "ARGS="',
+    ':nextarg',
+    'if "%~1"=="" goto runit',
+    'set "A=%~1"',
+    'if "%A:~0,1%"=="-" (set "ARGS=%ARGS% %A%") else (set "ARGS=%ARGS% \'%A%\'")',
+    'shift',
+    'goto nextarg',
+    ':runit',
+    'powershell -NoProfile -Command "' + run + ' %ARGS%"',
+    'echo.',
+    'pause',
+    'exit /b',
+    '#PS_START',
+    ps1
+  ].join('\r\n');
+}
+$('getCmd').onclick = () => {
+  saveFile(launcherText(), 'text/plain', 'print-to-laser.cmd');
+  alert('Saved: print-to-laser.cmd\n\n'
+    + 'The whole bridge is inside that one file. Put it where your .lpj jobs\n'
+    + 'land - Downloads is easiest - and double-click it. It takes the newest\n'
+    + 'job in the folder, shows you what is in it, and asks before it sends\n'
+    + 'anything to the laser.\n\n'
+    + 'Nothing to type, and no need to change any PowerShell setting: the\n'
+    + 'script is handed over as text, which an execution policy does not stop.\n\n'
+    + 'If it cannot work out which printer is the laser, it says so and prints\n'
+    + 'nothing. Make a shortcut to the file and add the switch it names, e.g.\n'
+    + '    print-to-laser.cmd -Printer "VLS4.60"\n'
+    + '-TestSquare sends one 100 mm square and nothing else.\n\n'
+    + 'Chrome may warn about a downloaded .cmd - choose Keep. If Windows shows\n'
+    + 'a blue "protected your PC" box, click More info, then Run anyway.\n\n'
+    + 'If the window says PowerShell is locked to ConstrainedLanguage, that is\n'
+    + 'a lockdown no script can get round: send the SVG or PDF instead.');
+};
+$('getPs1').onclick = () => {
+  const src = document.getElementById('ps1src').textContent.replace(/^\n/, '');
+  saveFile(src, 'text/plain', 'print-to-laser.ps1');
+  alert('Saved: print-to-laser.ps1\n\n'
+    + 'Put it wherever your jobs land - Downloads is easiest - then run it from\n'
+    + 'a PowerShell window in that folder:\n\n'
+    + '    powershell -ExecutionPolicy Bypass -File .\\print-to-laser.ps1\n\n'
+    + 'Windows marks anything downloaded as untrusted, which is what\n'
+    + '-ExecutionPolicy Bypass is for. If it still refuses, run\n'
+    + '    Unblock-File .\\print-to-laser.ps1\n'
+    + 'first, and then the line above.\n\n'
+    + 'It prints nothing until it has shown you what is in the job and you have\n'
+    + 'said yes.');
+};
+</script>
+<script type="text/plain" id="ps1src">
+# ---------------------------------------------------------------------------
+#  Laser Prep - print bridge
+#  Sends a whole job from the tool straight to the laser, as real cut lines.
+# ---------------------------------------------------------------------------
+#  Why this exists
+#
+#  The Universal driver decides cut-versus-engrave by looking at the PEN each
+#  line was drawn with. A GDI pen is either GEOMETRIC (a real width) or
+#  COSMETIC (no width, always one device dot). Only cosmetic gets cut.
+#
+#  Chrome rasterises the page before printing, so no pens reach the driver at
+#  all and everything engraves. Illustrator works because it emits cosmetic
+#  pens. This script emits them too, talking to gdi32 directly - the same
+#  approach Inkscape had to take for its Win32 Vector Print extension.
+#
+#  So: the tool saves a .lpj file (plain text, just the lines in millimetres),
+#  this script draws it into a print job. Illustrator is no longer in the way.
+#
+#  Usage, from a PowerShell window in this folder:
+#
+#     powershell -ExecutionPolicy Bypass -File .\print-to-laser.ps1
+#
+#  With no -Job it takes the newest .lpj from this folder, then Downloads.
+#  With no -Printer it looks for a Universal/VLS/ULS queue and, failing that,
+#  lists what it can see and stops without printing anything.
+#
+#  Useful switches:
+#     -DryRun                 read the job and report, print nothing
+#     -TestSquare             ignore the job file, send one 100 mm square
+#     -Yes                    skip the confirmation prompt
+#     -Job <file>             a particular .lpj
+#     -Printer "<name>"       a particular queue
+#     -Out <file>             for file-based printers, e.g. Print to PDF
+#
+#  To check the output without touching the laser:
+#     .\print-to-laser.ps1 -Printer "Microsoft Print to PDF" -Out "$env:TEMP\t.pdf" -Yes
+# ---------------------------------------------------------------------------
+param(
+  [string]$Job,
+  [string]$Printer,
+  [string]$Out,
+  [switch]$TestSquare,
+  [double]$SizeMm = 100,
+  [double]$LeftMm = 10,
+  [double]$TopMm  = 10,
+  [switch]$DryRun,
+  [switch]$Yes
+)
+$ErrorActionPreference = 'Stop'
+
+Add-Type @'
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Text;
+
+public class LaserGdi {
+
+  // ---- one drawable thing: a run of lines, or a filled region -------------
+  public class Shape {
+    public bool Fill;          // true = filled area (engraves), false = stroked line (cuts)
+    public int  Color;         // COLORREF, 0x00BBGGRR
+    public bool EvenOdd;
+    public List<double[]> Polys = new List<double[]>();   // x0,y0,x1,y1,... in mm
+  }
+
+  public static List<Shape> Shapes = new List<Shape>();
+  public static double PageW, PageH, Cal = 1;
+  public static string JobName = "", Code = "", Material = "";
+  public static int Points, Strokes, Fills;
+  // Where the job really reaches, measured from the points rather than taken
+  // on trust from the PAGE line. A size correction scales position as well as
+  // size, so a job can genuinely sit outside the page it declares.
+  public static double MinX, MinY, MaxX, MaxY;
+
+  // ---- read a .lpj --------------------------------------------------------
+  // Deliberately dull line-based text: one SHAPE line, then one P line per
+  // loop, points as x,y in millimetres from the top-left of the page. If this
+  // ever has to be debugged at the laser PC it can be read in Notepad.
+  public static void Parse(string path){
+    Shapes = new List<Shape>(); Points = 0; Strokes = 0; Fills = 0;
+    Cal = 1; PageW = 0; PageH = 0; JobName = ""; Code = ""; Material = "";
+    MinX = double.MaxValue; MinY = double.MaxValue;
+    MaxX = double.MinValue; MaxY = double.MinValue;
+    CultureInfo inv = CultureInfo.InvariantCulture;
+    Shape cur = null;
+    int lineNo = 0;
+    bool header = false;
+    foreach(string raw in File.ReadLines(path)){
+      lineNo++;
+      string line = raw.Trim();
+      if(line.Length == 0) continue;
+      int sp = line.IndexOf(' ');
+      string key = sp < 0 ? line : line.Substring(0, sp);
+      string rest = sp < 0 ? "" : line.Substring(sp + 1);
+      switch(key){
+        case "LPJ":
+          header = true;
+          if(rest.Trim() != "1") throw new Exception("This job file is version " + rest.Trim()
+            + ", and this script only knows version 1. Update one of them.");
+          break;
+        case "NAME":     JobName  = rest; break;
+        case "CODE":     Code     = rest; break;
+        case "MATERIAL": Material = rest; break;
+        case "CAL":      Cal = double.Parse(rest, inv); break;
+        case "PAGE": {
+          string[] a = rest.Split(' ');
+          PageW = double.Parse(a[0], inv); PageH = double.Parse(a[1], inv);
+          break;
+        }
+        case "SHAPE": {
+          string[] a = rest.Split(' ');
+          cur = new Shape();
+          cur.Fill    = (a[0] == "fill");
+          cur.Color   = ColorRef(a[1]);
+          cur.EvenOdd = (a.Length > 2 && a[2] == "evenodd");
+          Shapes.Add(cur);
+          if(cur.Fill) Fills++; else Strokes++;
+          break;
+        }
+        case "P": {
+          if(cur == null) throw new Exception("Line " + lineNo + ": points before any SHAPE line.");
+          string[] t = rest.Split(' ');
+          double[] pts = new double[t.Length * 2];
+          int n = 0;
+          for(int i = 0; i < t.Length; i++){
+            int c = t[i].IndexOf(',');
+            if(c < 0) continue;
+            pts[n++] = double.Parse(t[i].Substring(0, c), inv);
+            pts[n++] = double.Parse(t[i].Substring(c + 1), inv);
+          }
+          if(n < 4) break;                       // a single point draws nothing
+          if(n != pts.Length){ Array.Resize(ref pts, n); }
+          for(int i = 0; i < n; i += 2){
+            if(pts[i]   < MinX) MinX = pts[i];
+            if(pts[i]   > MaxX) MaxX = pts[i];
+            if(pts[i+1] < MinY) MinY = pts[i+1];
+            if(pts[i+1] > MaxY) MaxY = pts[i+1];
+          }
+          cur.Polys.Add(pts);
+          Points += n / 2;
+          break;
+        }
+        case "END": break;
+        default: break;                          // unknown keys ignored, so the
+      }                                          // format can grow without breaking
+    }
+    if(!header) throw new Exception("That file does not start with LPJ - it is not a Laser Prep job file.");
+  }
+
+  static int ColorRef(string rrggbb){
+    string s = rrggbb.TrimStart('#');
+    int r = Convert.ToInt32(s.Substring(0,2), 16);
+    int g = Convert.ToInt32(s.Substring(2,2), 16);
+    int b = Convert.ToInt32(s.Substring(4,2), 16);
+    return (b << 16) | (g << 8) | r;             // COLORREF is 0x00BBGGRR
+  }
+
+  // One 100 mm square, standing in for a job. The yes/no test of the whole idea.
+  public static void TestSquare(double size, double left, double top){
+    Shapes = new List<Shape>(); Points = 5; Strokes = 1; Fills = 0;
+    PageW = left + size + left; PageH = top + size + top; Cal = 1;
+    JobName = size + " mm size check"; Code = ""; Material = "";
+    Shape s = new Shape();
+    s.Fill = false; s.Color = 0x000000FF;        // red
+    s.Polys.Add(new double[]{ left,top, left+size,top, left+size,top+size, left,top+size, left,top });
+    Shapes.Add(s);
+    MinX = left; MinY = top; MaxX = left + size; MaxY = top + size;
+  }
+
+  // ---- gdi32 --------------------------------------------------------------
+  [StructLayout(LayoutKind.Sequential)] public struct POINT { public int x; public int y; }
+  [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)]
+  public struct DOCINFO {
+    public int cbSize;
+    [MarshalAs(UnmanagedType.LPWStr)] public string lpszDocName;
+    [MarshalAs(UnmanagedType.LPWStr)] public string lpszOutput;
+    [MarshalAs(UnmanagedType.LPWStr)] public string lpszDatatype;
+    public int fwType;
+  }
+  [DllImport("gdi32.dll", CharSet=CharSet.Unicode, EntryPoint="CreateDCW")]
+  public static extern IntPtr CreateDC(string drv, string dev, string port, IntPtr dm);
+  [DllImport("gdi32.dll")] public static extern bool DeleteDC(IntPtr hdc);
+  [DllImport("gdi32.dll", CharSet=CharSet.Unicode, EntryPoint="StartDocW")]
+  public static extern int StartDoc(IntPtr hdc, ref DOCINFO di);
+  [DllImport("gdi32.dll")] public static extern int EndDoc(IntPtr hdc);
+  [DllImport("gdi32.dll")] public static extern int AbortDoc(IntPtr hdc);
+  [DllImport("gdi32.dll")] public static extern int StartPage(IntPtr hdc);
+  [DllImport("gdi32.dll")] public static extern int EndPage(IntPtr hdc);
+  [DllImport("gdi32.dll")] public static extern IntPtr CreatePen(int style, int width, int color);
+  [DllImport("gdi32.dll")] public static extern IntPtr CreateSolidBrush(int color);
+  [DllImport("gdi32.dll")] public static extern IntPtr GetStockObject(int i);
+  [DllImport("gdi32.dll")] public static extern IntPtr SelectObject(IntPtr hdc, IntPtr o);
+  [DllImport("gdi32.dll")] public static extern bool DeleteObject(IntPtr o);
+  [DllImport("gdi32.dll")] public static extern bool Polyline(IntPtr hdc, POINT[] p, int n);
+  [DllImport("gdi32.dll")] public static extern bool PolyPolygon(IntPtr hdc, POINT[] p, int[] c, int n);
+  [DllImport("gdi32.dll")] public static extern int SetPolyFillMode(IntPtr hdc, int mode);
+  [DllImport("gdi32.dll")] public static extern int GetDeviceCaps(IntPtr hdc, int i);
+
+  const int LOGPIXELSX=88, LOGPIXELSY=90, HORZSIZE=4, VERTSIZE=6,
+            HORZRES=8, VERTRES=10, PHYSOFFX=112, PHYSOFFY=113;
+  const int NULL_PEN = 8, ALTERNATE = 1, WINDING = 2;
+  const int CHUNK = 8000;     // some drivers choke on one enormous Polyline
+
+  // What the driver says about itself. Read before printing so a wrong page
+  // size in the driver shows up as numbers rather than as a ruined sheet.
+  public static string Probe(string printer, out double sheetW, out double sheetH){
+    IntPtr hdc = CreateDC("WINSPOOL", printer, null, IntPtr.Zero);
+    if(hdc == IntPtr.Zero) throw new Exception("Could not open printer '" + printer + "'. Check the name is exact.");
+    try {
+      int dx = GetDeviceCaps(hdc, LOGPIXELSX), dy = GetDeviceCaps(hdc, LOGPIXELSY);
+      sheetW = GetDeviceCaps(hdc, HORZSIZE); sheetH = GetDeviceCaps(hdc, VERTSIZE);
+      double ox = GetDeviceCaps(hdc, PHYSOFFX) * 25.4 / Math.Max(1, dx);
+      double oy = GetDeviceCaps(hdc, PHYSOFFY) * 25.4 / Math.Max(1, dy);
+      StringBuilder sb = new StringBuilder();
+      sb.Append("  resolution  : " + dx + " x " + dy + " dots per inch\n");
+      sb.Append("  page in driver: " + sheetW + " x " + sheetH + " mm\n");
+      sb.Append("  margin it will not print into: "
+        + ox.ToString("0.0") + " x " + oy.ToString("0.0") + " mm"
+        + (ox > 0.05 || oy > 0.05 ? "  (compensated for)" : "") + "\n");
+      if(dx <= 0 || dy <= 0) throw new Exception("The driver reported no resolution.");
+      return sb.ToString();
+    } finally { DeleteDC(hdc); }
+  }
+
+  public static string Print(string printer, string outFile){
+    IntPtr hdc = CreateDC("WINSPOOL", printer, null, IntPtr.Zero);
+    if(hdc == IntPtr.Zero) throw new Exception("Could not open printer '" + printer + "'.");
+    int dpiX = GetDeviceCaps(hdc, LOGPIXELSX), dpiY = GetDeviceCaps(hdc, LOGPIXELSY);
+    // GDI draws relative to the printable area, not the paper. Where a driver
+    // keeps an unprintable margin, subtracting it puts the job back where the
+    // tool said it was - at the top-left corner of the bed.
+    int offX = GetDeviceCaps(hdc, PHYSOFFX), offY = GetDeviceCaps(hdc, PHYSOFFY);
+
+    DOCINFO di = new DOCINFO();
+    di.cbSize = Marshal.SizeOf(typeof(DOCINFO));
+    di.lpszDocName = "Laser Prep" + (JobName.Length > 0 ? " - " + JobName : "")
+                   + (Code.Length > 0 ? " [" + Code + "]" : "");
+    if(!string.IsNullOrEmpty(outFile)) di.lpszOutput = outFile;
+
+    if(StartDoc(hdc, ref di) <= 0){ DeleteDC(hdc); throw new Exception("StartDoc failed - the driver refused the job."); }
+    bool started = false;
+    int drawn = 0, failed = 0;
+    try {
+      StartPage(hdc); started = true;
+      IntPtr nullPen = GetStockObject(NULL_PEN);
+      foreach(Shape s in Shapes){
+        if(s.Polys.Count == 0) continue;
+        if(s.Fill){
+          // Filled black areas are what the driver rasterises, i.e. engraves.
+          // All the loops of one shape go in a single PolyPolygon so that holes
+          // stay holes instead of filling in solid.
+          IntPtr br = CreateSolidBrush(s.Color);
+          IntPtr ob = SelectObject(hdc, br);
+          IntPtr op = SelectObject(hdc, nullPen);
+          SetPolyFillMode(hdc, s.EvenOdd ? ALTERNATE : WINDING);
+          int total = 0;
+          foreach(double[] p in s.Polys) total += p.Length / 2;
+          POINT[] pts = new POINT[total];
+          int[] counts = new int[s.Polys.Count];
+          int k = 0, ci = 0;
+          foreach(double[] p in s.Polys){
+            counts[ci++] = p.Length / 2;
+            for(int i = 0; i < p.Length; i += 2){
+              pts[k].x = Dot(p[i], dpiX, offX); pts[k].y = Dot(p[i+1], dpiY, offY); k++;
+            }
+          }
+          if(PolyPolygon(hdc, pts, counts, counts.Length)) drawn++; else failed++;
+          SelectObject(hdc, op);
+          SelectObject(hdc, ob);
+          DeleteObject(br);
+        } else {
+          // PS_SOLID with width 0. The ZERO is the whole point: it makes the
+          // pen cosmetic, and cosmetic is the only thing the driver cuts.
+          IntPtr pen = CreatePen(0, 0, s.Color);
+          if(pen == IntPtr.Zero) throw new Exception("CreatePen failed.");
+          IntPtr old = SelectObject(hdc, pen);
+          foreach(double[] p in s.Polys){
+            int n = p.Length / 2;
+            POINT[] pts = new POINT[n];
+            for(int i = 0; i < n; i++){
+              pts[i].x = Dot(p[2*i], dpiX, offX); pts[i].y = Dot(p[2*i+1], dpiY, offY);
+            }
+            int at = 0;
+            while(at < n - 1){
+              int take = Math.Min(CHUNK, n - at);
+              POINT[] part = pts;
+              if(at != 0 || take != n){ part = new POINT[take]; Array.Copy(pts, at, part, 0, take); }
+              if(Polyline(hdc, part, take)) drawn++; else failed++;
+              at += take - 1;                    // overlap one point, no gap in the line
+            }
+          }
+          SelectObject(hdc, old);
+          DeleteObject(pen);
+        }
+      }
+      EndPage(hdc); started = false;
+      EndDoc(hdc);
+    } catch {
+      if(started) EndPage(hdc);
+      AbortDoc(hdc); DeleteDC(hdc); throw;
+    }
+    DeleteDC(hdc);
+    return drawn + (drawn == 1 ? " drawing call" : " drawing calls") + " accepted"
+         + (failed > 0 ? ", " + failed + " REFUSED by the driver" : ", none refused");
+  }
+
+  static int Dot(double mm, int dpi, int off){
+    return (int)Math.Round(mm / 25.4 * dpi) - off;
+  }
+}
+'@
+
+# --- find the job -----------------------------------------------------------
+if(-not $TestSquare){
+  if(-not $Job){
+    # Run as a file, that is the script's own folder. Handed to PowerShell as
+    # text - pasted into a window, or run by the .cmd launcher, which is how a
+    # PC that refuses to run .ps1 files gets to use this at all - there is no
+    # file to ask about, and the folder the window is sitting in is the answer.
+    $here = if($MyInvocation.MyCommand.Path){ Split-Path -Parent $MyInvocation.MyCommand.Path }
+            else { (Get-Location).Path }
+    $dirs = @($here, (Join-Path $env:USERPROFILE 'Downloads')) | Where-Object { Test-Path $_ }
+    $found = $dirs | ForEach-Object { Get-ChildItem -Path $_ -Filter *.lpj -File -ErrorAction SilentlyContinue } |
+             Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    if(-not $found){
+      Write-Host "No job file found. Nothing has been printed." -ForegroundColor Yellow
+      Write-Host "`nIn Laser Prep, click 'Send to the laser' - it saves a .lpj file."
+      Write-Host "Looked in:"
+      $dirs | ForEach-Object { Write-Host "   $_" }
+      Write-Host "`nOr run with -TestSquare to send a 100 mm square instead.`n"
+      exit 1
+    }
+    $Job = $found.FullName
+  }
+  if(-not (Test-Path $Job)){
+    Write-Host "No such job file: $Job" -ForegroundColor Yellow
+    exit 1
+  }
+  $Job = (Resolve-Path $Job).Path
+  # A half-written or wrong file should say so in one plain line, not in a
+  # wall of .NET exception text at someone mid-lesson.
+  try { [LaserGdi]::Parse($Job) }
+  catch {
+    $m = $_.Exception
+    while($m.InnerException){ $m = $m.InnerException }
+    Write-Host "`nThat job file could not be read. Nothing has been printed." -ForegroundColor Yellow
+    Write-Host "   $Job"
+    Write-Host "   $($m.Message)`n"
+    exit 1
+  }
+} else {
+  [LaserGdi]::TestSquare($SizeMm, $LeftMm, $TopMm)
+}
+
+# --- pick a printer ---------------------------------------------------------
+if(-not $Printer){
+  $all = @(Get-Printer | Select-Object -ExpandProperty Name)
+  $guess = @($all | Where-Object { $_ -match 'VLS|Universal|ULS|Laser' })
+  if($guess.Count -eq 1){
+    $Printer = $guess[0]
+  } else {
+    Write-Host "Could not identify the laser automatically. Nothing has been printed." -ForegroundColor Yellow
+    Write-Host "`nPrinters on this PC:`n"
+    $all | ForEach-Object { Write-Host "   $_" }
+    Write-Host "`nRe-run naming one, for example:"
+    Write-Host "   .\print-to-laser.ps1 -Printer `"VLS4.60`"`n"
+    exit 1
+  }
+}
+
+# --- report, then ask -------------------------------------------------------
+$sheetW = 0.0; $sheetH = 0.0
+$info = [LaserGdi]::Probe($Printer, [ref]$sheetW, [ref]$sheetH)
+
+Write-Host ""
+Write-Host "Job     : $([LaserGdi]::JobName)$(if([LaserGdi]::Code){ '  [' + [LaserGdi]::Code + ']' })"
+if(-not $TestSquare){ Write-Host "File    : $Job" }
+if([LaserGdi]::Material){ Write-Host "Material: $([LaserGdi]::Material)" }
+Write-Host ("Page    : {0} x {1} mm" -f [LaserGdi]::PageW, [LaserGdi]::PageH)
+$plural = { param($n,$one,$many) "$n " + $(if($n -eq 1){ $one } else { $many }) }
+Write-Host ("Content : {0}, {1}, {2} points" -f `
+  (& $plural ([LaserGdi]::Strokes) 'cut/score line' 'cut/score lines'),
+  (& $plural ([LaserGdi]::Fills) 'engraved area' 'engraved areas'),
+  [LaserGdi]::Points)
+if([LaserGdi]::Cal -ne 1){
+  Write-Host ("Size correction of {0:0.00}% is already baked in - do not re-scale in the laser software." -f `
+    (([LaserGdi]::Cal - 1) * 100)) -ForegroundColor Cyan
+}
+Write-Host ""
+Write-Host "Printer : $Printer"
+Write-Host $info -NoNewline
+
+# The lines themselves decide whether this fits, not the page the file claims.
+$x0 = [LaserGdi]::MinX; $y0 = [LaserGdi]::MinY
+$x1 = [LaserGdi]::MaxX; $y1 = [LaserGdi]::MaxY
+if([LaserGdi]::Points -gt 0){
+  Write-Host ("Lies at : {0:0.0},{1:0.0} to {2:0.0},{3:0.0} mm from the top-left corner" -f $x0,$y0,$x1,$y1)
+  if($x0 -lt -0.05 -or $y0 -lt -0.05){
+    Write-Host "WARNING: part of this job sits off the top or left of the bed and will be lost." -ForegroundColor Yellow
+  }
+  if($sheetW -gt 0 -and ($x1 -gt $sheetW + 0.5 -or $y1 -gt $sheetH + 0.5)){
+    Write-Host ("WARNING: this job reaches past the page set in the driver ({0} x {1} mm)." -f $sheetW, $sheetH) -ForegroundColor Yellow
+    Write-Host "         Anything past the edge will be cut off. Set the page size in the" -ForegroundColor Yellow
+    Write-Host "         printer's Properties to the bed, or move the design in Laser Prep." -ForegroundColor Yellow
+  }
+}
+if([LaserGdi]::Strokes -eq 0 -and [LaserGdi]::Fills -gt 0){
+  Write-Host "NOTE: this job is all engraving - there is nothing in it to cut." -ForegroundColor Yellow
+}
+
+if($DryRun){
+  Write-Host "`n-DryRun: read and checked, nothing sent.`n" -ForegroundColor Green
+  exit 0
+}
+if(-not $Yes){
+  Write-Host ""
+  $a = Read-Host "Send this to $Printer? [y/N]"
+  if($a -notmatch '^(y|yes)$'){ Write-Host "Cancelled. Nothing sent.`n"; exit 0 }
+}
+
+# --- send -------------------------------------------------------------------
+if($Out){
+  New-Item -ItemType Directory -Force (Split-Path $Out) | Out-Null
+  if(Test-Path $Out){ Remove-Item $Out -Force }
+}
+$result = [LaserGdi]::Print($Printer, $Out)
+
+Write-Host ""
+Write-Host "Sent. $result" -ForegroundColor Green
+if($Out){
+  Start-Sleep -Milliseconds 1500
+  if(Test-Path $Out){ Write-Host "Wrote $Out ($((Get-Item $Out).Length) bytes)" }
+  else { Write-Host "No output file yet - the spooler may still be writing." -ForegroundColor Yellow }
+} else {
+  Write-Host "It should now be waiting in the Universal software as a job."
+  Write-Host "Check there that the red lines show as vectors before you run it."
+  if($TestSquare){ Write-Host ("Measure the square after cutting: it should be exactly {0} mm." -f $SizeMm) }
+}
+Write-Host ""
 </script>
 </body>
 </html>
